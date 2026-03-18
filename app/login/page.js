@@ -30,31 +30,45 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2>Admin Login</h2>
-        <p>Sign in to manage your portfolio</p>
-        <form onSubmit={handleSubmit} className="login-form">
-          {error && <div className="error-message">{error}</div>}
-          <div className="form-group">
-            <label>Username</label>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Admin Login</h2>
+          <p className="text-gray-500">Sign in to manage your portfolio</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm border border-red-100 font-medium text-center">
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
             <input 
               type="text" 
               value={username} 
               onChange={(e) => setUsername(e.target.value)}
               required
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 focus:bg-white"
             />
           </div>
-          <div className="form-group">
-            <label>Password</label>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <input 
               type="password" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50 focus:bg-white"
             />
           </div>
-          <button type="submit" className="primary-btn">Log In</button>
+          
+          <button type="submit" className="w-full py-3.5 px-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-black transition-colors shadow-md mt-2">
+            Log In
+          </button>
         </form>
       </div>
     </div>

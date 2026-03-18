@@ -54,51 +54,99 @@ export default function ProfileSettingsPage() {
     }
   };
 
-  if (loading) return <div className="admin-page"><p>Loading...</p></div>;
+  if (loading) return <div className="p-8 text-gray-500">Loading profile...</div>;
 
   return (
-    <div className="admin-page">
-      <header className="admin-header">
-        <h1>Profile Settings</h1>
-        <p>Manage your main biodata and contact details.</p>
-      </header>
-      
-      <form onSubmit={handleSubmit} className="admin-form">
-        <div className="form-group">
-          <label>Full Name</label>
-          <input type="text" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} required />
+    <div className="max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
+        <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
+      </div>
+
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Display Name</label>
+            <input 
+              type="text" 
+              required
+              value={profile.name} 
+              onChange={e => setProfile({...profile, name: e.target.value})} 
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
+          
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Job Title / Headline</label>
+            <input 
+              type="text" 
+              required
+              value={profile.title} 
+              onChange={e => setProfile({...profile, title: e.target.value})} 
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
         </div>
-        <div className="form-group">
-          <label>Job Title</label>
-          <input type="text" value={profile.title} onChange={e => setProfile({...profile, title: e.target.value})} required />
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Short Bio</label>
+          <textarea 
+            rows="4" 
+            required
+            value={profile.bio} 
+            onChange={e => setProfile({...profile, bio: e.target.value})}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-y"
+          ></textarea>
         </div>
-        <div className="form-group">
-          <label>Bio</label>
-          <textarea value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} required rows={5}></textarea>
+
+        <h3 className="text-xl font-bold text-gray-900 mt-10 mb-6 pb-2 border-b border-gray-100">Contact & Links</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <input 
+              type="email" 
+              value={profile.email} 
+              onChange={e => setProfile({...profile, email: e.target.value})} 
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
+          
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Resume URL</label>
+            <input 
+              type="url" 
+              value={profile.resumeLink} 
+              onChange={e => setProfile({...profile, resumeLink: e.target.value})} 
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
+
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">GitHub Profile URL</label>
+            <input 
+              type="url" 
+              value={profile.github} 
+              onChange={e => setProfile({...profile, github: e.target.value})} 
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
+
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">LinkedIn Profile URL</label>
+            <input 
+              type="url" 
+              value={profile.linkedin} 
+              onChange={e => setProfile({...profile, linkedin: e.target.value})} 
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+          </div>
         </div>
-        <div className="form-group">
-          <label>Skills (comma separated)</label>
-          <input type="text" value={profile.skills} onChange={e => setProfile({...profile, skills: e.target.value})} />
+
+        <div className="flex justify-end pt-4 border-t border-gray-100">
+          <button type="submit" disabled={saving} className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all shadow-sm disabled:opacity-50 flex items-center gap-2">
+            {saving ? 'Saving Changes...' : 'Save Profile'}
+          </button>
         </div>
-        <div className="form-group">
-          <label>Email</label>
-          <input type="email" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} />
-        </div>
-        <div className="form-group">
-          <label>GitHub URL</label>
-          <input type="url" value={profile.github} onChange={e => setProfile({...profile, github: e.target.value})} />
-        </div>
-        <div className="form-group">
-          <label>LinkedIn URL</label>
-          <input type="url" value={profile.linkedin} onChange={e => setProfile({...profile, linkedin: e.target.value})} />
-        </div>
-        <div className="form-group">
-          <label>Resume Draft URL</label>
-          <input type="url" value={profile.resumeLink} onChange={e => setProfile({...profile, resumeLink: e.target.value})} />
-        </div>
-        <button type="submit" className="primary-btn" disabled={saving}>
-          {saving ? 'Saving...' : 'Save Profile'}
-        </button>
       </form>
     </div>
   );
