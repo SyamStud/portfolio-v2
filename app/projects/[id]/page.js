@@ -3,6 +3,8 @@ import Project from '@/models/Project';
 import { ArrowLeft, ExternalLink, Github } from 'lucide-react';
 import FadeIn from '@/components/FadeIn';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import ImageGallery from './ImageGallery';
 
 export const dynamic = 'force-dynamic';
@@ -46,12 +48,72 @@ export default async function ProjectDetailPage({ params }) {
       className="min-h-screen bg-[#FAFAF8]"
       style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
+
+        /* ── Markdown prose ── */
+        .md-content { color: #57534e; font-size: 16px; line-height: 1.85; }
+        .md-content h1 { font-size: 1.75rem; font-weight: 600; color: #1c1917; letter-spacing: -0.03em; margin: 2.5rem 0 1rem; }
+        .md-content h2 { font-size: 1.35rem; font-weight: 600; color: #1c1917; letter-spacing: -0.02em; margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e7e5e4; }
+        .md-content h3 { font-size: 1.05rem; font-weight: 600; color: #292524; letter-spacing: -0.01em; margin: 1.5rem 0 0.5rem; }
+        .md-content h4 { font-size: 0.95rem; font-weight: 600; color: #44403c; margin: 1.25rem 0 0.4rem; }
+        .md-content p { margin: 0 0 1.25rem; }
+        .md-content a { color: #1c1917; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #d6d3d1; transition: text-decoration-color 0.2s; }
+        .md-content a:hover { text-decoration-color: #57534e; }
+        .md-content strong { color: #292524; font-weight: 600; }
+        .md-content em { font-style: italic; }
+        .md-content ul { list-style: disc; padding-left: 1.4rem; margin: 0 0 1.25rem; }
+        .md-content ol { list-style: decimal; padding-left: 1.4rem; margin: 0 0 1.25rem; }
+        .md-content li { margin-bottom: 0.35rem; }
+        .md-content li > ul, .md-content li > ol { margin-top: 0.35rem; margin-bottom: 0; }
+        .md-content blockquote {
+          border-left: 3px solid #d6d3d1;
+          padding: 0.5rem 0 0.5rem 1.25rem;
+          margin: 1.5rem 0;
+          color: #78716c;
+          font-style: italic;
+        }
+        .md-content blockquote p { margin: 0; }
+        .md-content code {
+          font-family: 'DM Mono', 'Fira Code', monospace;
+          font-size: 0.85em;
+          background: #f5f5f4;
+          border: 1px solid #e7e5e4;
+          border-radius: 5px;
+          padding: 0.15em 0.4em;
+          color: #292524;
+        }
+        .md-content pre {
+          background: #1c1917;
+          border-radius: 12px;
+          padding: 1.25rem 1.5rem;
+          overflow-x: auto;
+          margin: 1.5rem 0;
+        }
+        .md-content pre code {
+          background: none;
+          border: none;
+          padding: 0;
+          color: #d6d3d1;
+          font-size: 0.875rem;
+          line-height: 1.7;
+        }
+        .md-content hr { border: none; border-top: 1px solid #e7e5e4; margin: 2.5rem 0; }
+        .md-content img { width: 100%; border-radius: 12px; margin: 1.5rem 0; border: 1px solid #e7e5e4; }
+        .md-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; }
+        .md-content th { text-align: left; font-weight: 600; color: #292524; padding: 0.6rem 0.875rem; border-bottom: 2px solid #e7e5e4; }
+        .md-content td { padding: 0.6rem 0.875rem; border-bottom: 1px solid #f5f5f4; }
+        .md-content tr:last-child td { border-bottom: none; }
+        .md-content tr:hover td { background: #fafaf8; }
+      `}</style>
 
       {/* ── Navbar ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#FAFAF8]/80 backdrop-blur-md border-b border-stone-200/60">
         <div className="max-w-6xl mx-auto px-8 h-16 flex items-center">
-          <Link href="/#projects" className="inline-flex items-center gap-2 text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors">
+          <Link
+            href="/#projects"
+            className="inline-flex items-center gap-2 text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors"
+          >
             <ArrowLeft size={15} />
             Back to Projects
           </Link>
@@ -76,7 +138,6 @@ export default async function ProjectDetailPage({ params }) {
               {project.description}
             </p>
 
-            {/* CTA buttons */}
             <div className="flex gap-3 mt-8">
               {project.demoUrl && (
                 <a
@@ -106,20 +167,14 @@ export default async function ProjectDetailPage({ params }) {
             <ImageGallery images={images} title={project.title} />
           )}
 
-          {/* ── Content ── */}
+          {/* ── Markdown Content ── */}
           {project.content && (
             <section className="py-12 max-w-3xl">
-              <div
-                className="text-[16px] leading-[1.85] text-stone-600 space-y-6
-                  [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-stone-900 [&_h2]:tracking-[-0.02em] [&_h2]:mt-10 [&_h2]:mb-3
-                  [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-stone-800 [&_h3]:mt-8 [&_h3]:mb-2
-                  [&_a]:text-stone-900 [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-stone-300 hover:[&_a]:decoration-stone-700
-                  [&_strong]:text-stone-800 [&_strong]:font-semibold
-                  [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1
-                  [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1
-                  [&_blockquote]:border-l-2 [&_blockquote]:border-stone-300 [&_blockquote]:pl-4 [&_blockquote]:text-stone-500 [&_blockquote]:italic"
-                dangerouslySetInnerHTML={{ __html: project.content }}
-              />
+              <div className="md-content">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {project.content}
+                </ReactMarkdown>
+              </div>
             </section>
           )}
 

@@ -4,6 +4,7 @@ import Profile from '@/models/Profile';
 import Experience from '@/models/Experience';
 import Project from '@/models/Project';
 import FadeIn from '@/components/FadeIn';
+import { Github, Linkedin } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,19 +44,34 @@ export default async function Home() {
           <span className="font-semibold text-sm tracking-[0.1em] uppercase text-stone-900">
             {profile.name}
           </span>
-          <div className="flex items-center gap-8">
-            <a href="#experience" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors tracking-wide">Experience</a>
-            <a href="#projects" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors tracking-wide">Projects</a>
-            {profile.resumeLink && (
-              <a
-                href={profile.resumeLink}
-                target="_blank"
-                rel="noreferrer"
-                className="text-[13px] font-medium px-4 py-1.5 rounded-full border border-stone-300 text-stone-700 hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all"
-              >
-                Résumé
-              </a>
-            )}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 pr-6 border-r border-stone-200">
+              <a href="#experience" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors tracking-wide">Experience</a>
+              <a href="#projects" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors tracking-wide">Projects</a>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              {profile.github && (
+                <a href={profile.github} target="_blank" rel="noreferrer" className="text-stone-400 hover:text-stone-900 transition-colors" title="GitHub">
+                  <Github size={18} />
+                </a>
+              )}
+              {profile.linkedin && (
+                <a href={profile.linkedin} target="_blank" rel="noreferrer" className="text-stone-400 hover:text-stone-900 transition-colors" title="LinkedIn">
+                  <Linkedin size={18} />
+                </a>
+              )}
+              {profile.resumeLink && (
+                <a
+                  href={profile.resumeLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ml-2 text-[12px] font-semibold px-4 py-1.5 rounded-full border border-stone-300 text-stone-700 hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all uppercase tracking-wider"
+                >
+                  Résumé
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -137,7 +153,26 @@ export default async function Home() {
                     </div>
                     {/* Right col */}
                     <div className="flex items-center">
-                      <p className="text-stone-500 leading-relaxed text-[15px] whitespace-pre-wrap">{exp.description}</p>
+                      <div className="text-stone-500 leading-relaxed text-[15px] w-full">
+                        {exp.description.split('\n').some(line => line.trim().startsWith('-')) ? (
+                          <ul className="space-y-2 list-none">
+                            {exp.description.split('\n').map((line, idx) => {
+                              const trimmed = line.trim();
+                              if (trimmed.startsWith('-')) {
+                                return (
+                                  <li key={idx} className="flex gap-3 items-start">
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-stone-300 shrink-0" />
+                                    <span>{trimmed.substring(1).trim()}</span>
+                                  </li>
+                                );
+                              }
+                              return trimmed ? <p key={idx} className="mb-2">{trimmed}</p> : <br key={idx} />;
+                            })}
+                          </ul>
+                        ) : (
+                          <p className="whitespace-pre-wrap">{exp.description}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

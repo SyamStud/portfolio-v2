@@ -9,13 +9,11 @@ export default function ImageGallery({ images, title }) {
     const [lightboxIndex, setLightboxIndex] = useState(0);
     const trackRef = useRef(null);
 
-    // Sync dots on scroll
+    // Sync dots + arrows on scroll
     useEffect(() => {
         const track = trackRef.current;
         if (!track || images.length <= 1) return;
-
         const slides = track.querySelectorAll('.gallery-slide');
-
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
@@ -27,12 +25,11 @@ export default function ImageGallery({ images, title }) {
             },
             { root: track, threshold: 0.6 }
         );
-
         slides.forEach((s) => observer.observe(s));
         return () => observer.disconnect();
     }, [images.length]);
 
-    // Keyboard navigation for lightbox
+    // Keyboard for lightbox
     const handleKeyDown = useCallback(
         (e) => {
             if (!lightboxOpen) return;
@@ -58,6 +55,9 @@ export default function ImageGallery({ images, title }) {
         if (!track) return;
         track.children[index]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
     };
+
+    const prev = () => scrollToSlide((activeIndex - 1 + images.length) % images.length);
+    const next = () => scrollToSlide((activeIndex + 1) % images.length);
 
     if (images.length === 0) return null;
 
@@ -97,8 +97,22 @@ export default function ImageGallery({ images, title }) {
           border: none;
           padding: 0;
           cursor: pointer;
+          display: block;
         }
         .gallery-dot.active { width: 20px; background: #292524; }
+        .gallery-arrow {
+          width: 38px; height: 38px;
+          border-radius: 9999px;
+          background: white;
+          border: 1px solid #e7e5e4;
+          color: #44403c;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+        .gallery-arrow:hover { background: #f5f5f4; border-color: #d6d3d1; color: #1c1917; }
+        .gallery-arrow:disabled { opacity: 0.3; cursor: default; }
         .lightbox-overlay {
           position: fixed; inset: 0; z-index: 9999;
           background: rgba(12,12,10,0.93);
@@ -129,8 +143,8 @@ export default function ImageGallery({ images, title }) {
         .lb-btn:hover { background: rgba(255,255,255,0.18); }
       `}</style>
 
-            {/* ── Swipe Track ── */}
             <section className="py-8">
+                {/* Track */}
                 <div className="gallery-track" ref={trackRef}>
                     {images.map((img, i) => (
                         <div key={i} className="gallery-slide" onClick={() => openLightbox(i)}>
@@ -139,68 +153,75 @@ export default function ImageGallery({ images, title }) {
                     ))}
                 </div>
 
-                {/* Dots */}
+                {/* Controls: prev — dots — next */}
                 {images.length > 1 && (
-                    <div className="flex justify-center items-center gap-2 mt-5">
-                        {images.map((_, i) => (
-                            <button
-                                key={i}
-                                className={`gallery-dot${i === activeIndex ? ' active' : ''}`}
-                                onClick={() => scrollToSlide(i)}
-                                aria-label={`Go to image ${i + 1}`}
-                            />
-                        ))}
+                    <div className="flex items-center justify-center gap-4 mt-5">
+                        <button
+                            className="gallery-arrow"
+                            onClick={prev}
+                            disabled={activeIndex === 0}
+                            aria-label="Previous image"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                            {images.map((_, i) => (
+                                <button
+                                    key={i}
+                                    className={`gallery-dot${i === activeIndex ? ' active' : ''}`}
+                                    onClick={() => scrollToSlide(i)}
+                                    aria-label={`Go to image ${i + 1}`}
+                                />
+                            ))}
+                        </div>
+
+                        <button
+                            className="gallery-arrow"
+                            onClick={next}
+                            disabled={activeIndex === images.length - 1}
+                            aria-label="Next image"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
                     </div>
                 )}
             </section>
 
-            {/* ── Lightbox ── */}
+            {/* Lightbox */}
             {lightboxOpen && (
                 <div
                     className="lightbox-overlay"
                     onClick={(e) => { if (e.target === e.currentTarget) setLightboxOpen(false); }}
                 >
-                    {/* Close */}
-                    <button
-                        className="lb-btn"
-                        style={{ top: 20, right: 20 }}
-                        onClick={() => setLightboxOpen(false)}
-                        aria-label="Close lightbox"
-                    >
+                    <button className="lb-btn" style={{ top: 20, right: 20 }} onClick={() => setLightboxOpen(false)} aria-label="Close">
                         <X size={18} />
                     </button>
 
-                    {/* Prev */}
                     {images.length > 1 && (
                         <button
                             className="lb-btn"
                             style={{ left: 16, top: '50%', transform: 'translateY(-50%)' }}
                             onClick={() => setLightboxIndex((p) => (p - 1 + images.length) % images.length)}
-                            aria-label="Previous image"
+                            aria-label="Previous"
                         >
                             <ChevronLeft size={20} />
                         </button>
                     )}
 
-                    <img
-                        src={images[lightboxIndex]}
-                        alt={`${title} preview ${lightboxIndex + 1}`}
-                        className="lightbox-img"
-                    />
+                    <img src={images[lightboxIndex]} alt={`${title} preview ${lightboxIndex + 1}`} className="lightbox-img" />
 
-                    {/* Next */}
                     {images.length > 1 && (
                         <button
                             className="lb-btn"
                             style={{ right: 16, top: '50%', transform: 'translateY(-50%)' }}
                             onClick={() => setLightboxIndex((p) => (p + 1) % images.length)}
-                            aria-label="Next image"
+                            aria-label="Next"
                         >
                             <ChevronRight size={20} />
                         </button>
                     )}
 
-                    {/* Counter */}
                     {images.length > 1 && (
                         <span style={{
                             position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
