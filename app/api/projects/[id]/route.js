@@ -35,6 +35,7 @@ export async function PUT(req, { params }) {
       demoUrl: formData.get('demoUrl'),
       repoUrl: formData.get('repoUrl'),
       order: formData.get('order') || 0,
+      proprietary: formData.get('proprietary') === 'true',
     };
 
     // Keep existing images passed from client
@@ -58,6 +59,9 @@ export async function PUT(req, { params }) {
 
     updateData.images = [...existingImages, ...uploadedImages];
 
+    // Process tech stack (logos are URLs now)
+    updateData.techStack = parseTechStackData(formData);
+
     const project = await Project.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
     return NextResponse.json(project);
   } catch (error) {
@@ -76,5 +80,19 @@ export async function DELETE(req, { params }) {
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+function parseTechStackData(formData) {
+  const techStackDataStr = formData.get('techStackData');
+  if (!techStackDataStr) return [];
+
+  try {
+    const techStackData = JSON.parse(techStackDataStr);
+    return techStackData
+      .filter(item => item.name)
+      .map(item => ({ name: item.name, logo: item.logo || '' }));
+  } catch {
+    return [];
   }
 }
