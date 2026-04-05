@@ -170,29 +170,14 @@ export default async function ProjectDetailPage({ params }) {
             </div>
           </section>
 
-          {/* ── Video Player ── */}
-          {(project.youtubeUrl || project.videoUrl) && (
-            <section className="py-8">
-              <div className="rounded-2xl overflow-hidden border border-stone-200 bg-stone-900 shadow-sm aspect-video flex items-center justify-center relative z-10">
-                {project.youtubeUrl ? (
-                  <iframe
-                    className="w-full h-full"
-                    src={getYouTubeEmbedUrl(project.youtubeUrl)}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
-                  <video src={project.videoUrl} controls controlsList="nodownload" className="w-full h-full outline-none" />
-                )}
-              </div>
-            </section>
-          )}
-
           {/* ── Gallery ── */}
-          {images.length > 0 && (
-            <ImageGallery images={images} title={project.title} />
+          {(images.length > 0 || project.youtubeUrl || project.videoUrl) && (
+            <ImageGallery 
+              images={images} 
+              title={project.title} 
+              youtubeUrl={project.youtubeUrl}
+              videoUrl={project.videoUrl}
+            />
           )}
 
           {/* ── Tech Stack ── */}
