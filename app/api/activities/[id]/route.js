@@ -28,12 +28,18 @@ export async function PUT(req, { params }) {
     await connectToDatabase();
     const formData = await req.formData();
 
+    // Parse bilingual fields
+    let title, description, content;
+    try { title = JSON.parse(formData.get('title')); } catch { title = formData.get('title'); }
+    try { description = JSON.parse(formData.get('description')); } catch { description = formData.get('description'); }
+    try { content = JSON.parse(formData.get('content')); } catch { content = formData.get('content'); }
+
     const updateData = {
-      title: formData.get('title'),
+      title,
       date: formData.get('date'),
       type: formData.get('type') || 'EVENT',
-      description: formData.get('description'),
-      content: formData.get('content'),
+      description,
+      content,
       featured: formData.get('featured') === 'true',
       order: formData.get('order') || 0,
     };

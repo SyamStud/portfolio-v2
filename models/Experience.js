@@ -8,9 +8,8 @@ const experienceSchema = new mongoose.Schema(
       trim: true,
     },
     role: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: [true, "Please provide your role"],
-      trim: true,
     },
     startDate: {
       type: Date,
@@ -24,9 +23,8 @@ const experienceSchema = new mongoose.Schema(
       default: false,
     },
     description: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: [true, "Please provide a description of your experience"],
-      trim: true,
     },
     order: {
       type: Number,

@@ -3,8 +3,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Star, ArrowRight } from 'lucide-react';
+import { useLanguage } from './LanguageContext';
+import { getLocalized } from '@/lib/localize';
 
 export default function ActivitiesCarousel({ activities }) {
+  const { language, t } = useLanguage();
+  const dateLocale = t('date_locale');
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef(null);
@@ -29,11 +34,13 @@ export default function ActivitiesCarousel({ activities }) {
   if (total === 0) return null;
 
   const current = activities[activeIndex];
-  const dateStr = new Date(current.date).toLocaleDateString('en-US', {
+  const dateStr = new Date(current.date).toLocaleDateString(dateLocale, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
+
+  const postOfText = t('post_of', { current: activeIndex + 1, total });
 
   return (
     <>
@@ -185,12 +192,12 @@ export default function ActivitiesCarousel({ activities }) {
             <img
               key={act._id}
               src={act.image || '/placeholder.jpg'}
-              alt={act.title}
+              alt={getLocalized(act.title, language)}
               className={i === activeIndex ? 'active' : ''}
             />
           ))}
           <div className="act-img-info">
-            <div className="act-img-title">{current.title}</div>
+            <div className="act-img-title">{getLocalized(current.title, language)}</div>
             <div className="act-img-date">{dateStr}</div>
           </div>
           {current.featured && (
@@ -210,22 +217,22 @@ export default function ActivitiesCarousel({ activities }) {
           </div>
 
           <h3 className="text-xl md:text-2xl font-bold text-stone-900 tracking-[-0.02em] mb-4 leading-snug" style={{ position: 'relative', zIndex: 1 }}>
-            {current.title}
+            {getLocalized(current.title, language)}
           </h3>
 
           <p className="text-stone-500 text-[14px] md:text-[15px] leading-relaxed mb-6 flex-grow" style={{ textAlign: 'justify', position: 'relative', zIndex: 1 }}>
-            {current.description}
+            {getLocalized(current.description, language)}
           </p>
 
           <div className="flex items-center justify-between mt-auto" style={{ position: 'relative', zIndex: 1 }}>
             <span className="text-[13px] text-stone-400">
-              Post {activeIndex + 1} of {total}
+              {postOfText}
             </span>
             <Link
               href={`/activities/${current._id}`}
               className="inline-flex items-center gap-1.5 text-[13px] font-bold text-stone-800 hover:text-stone-900 transition-colors"
             >
-              Read Full Post <ArrowRight size={14} />
+              {t('read_full_post')} <ArrowRight size={14} />
             </Link>
           </div>
 

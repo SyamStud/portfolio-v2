@@ -3,9 +3,8 @@ import mongoose from "mongoose";
 const activitySchema = new mongoose.Schema(
   {
     title: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: [true, "Please provide a title"],
-      trim: true,
     },
     date: {
       type: Date,
@@ -17,13 +16,11 @@ const activitySchema = new mongoose.Schema(
       default: "EVENT",
     },
     description: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: [true, "Please provide a description"],
-      trim: true,
     },
     content: {
-      type: String,
-      trim: true,
+      type: mongoose.Schema.Types.Mixed,
     },
     image: {
       type: String,

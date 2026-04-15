@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLanguage } from './LanguageContext';
+import { getLocalized } from '@/lib/localize';
 
 const getCleanUrl = (url) => {
   if (!url) return '';
@@ -18,6 +20,7 @@ const getCleanUrl = (url) => {
 };
 
 export default function ProjectsCarousel({ projects }) {
+  const { language, t } = useLanguage();
   const total = projects.length;
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -270,21 +273,21 @@ export default function ProjectsCarousel({ projects }) {
                   <div className="proj-card">
                     <div className="proj-card-img">
                       {proj.images && proj.images.length > 0 ? (
-                        <img src={proj.images[0]} alt={proj.title} />
+                        <img src={proj.images[0]} alt={getLocalized(proj.title, language)} />
                       ) : (
                         <div className="proj-placeholder" />
                       )}
                     </div>
                     <div className="p-5 md:p-6 flex flex-col flex-grow">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-base md:text-lg font-semibold text-stone-900 leading-snug tracking-[-0.02em]">{proj.title}</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-stone-900 leading-snug tracking-[-0.02em]">{getLocalized(proj.title, language)}</h3>
                         <span className="flex-shrink-0 ml-3 mt-0.5 text-stone-300 text-lg">↗</span>
                       </div>
-                      <p className="text-stone-500 text-sm leading-relaxed flex-grow mb-3">{truncateDesc(proj.description)}</p>
+                      <p className="text-stone-500 text-sm leading-relaxed flex-grow mb-3">{truncateDesc(getLocalized(proj.description, language))}</p>
                       {proj.proprietary && (
                         <div className="mb-3 mt-auto">
                           <span className="inline-flex items-center text-[10px] font-semibold tracking-wider uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                            Proprietary
+                            {t('proprietary')}
                           </span>
                         </div>
                       )}
@@ -306,7 +309,7 @@ export default function ProjectsCarousel({ projects }) {
                             )}
                           </div>
                         ) : (
-                          <span className="text-[10px] md:text-[11px] font-semibold tracking-[0.15em] uppercase text-stone-400">Read case study</span>
+                          <span className="text-[10px] md:text-[11px] font-semibold tracking-[0.15em] uppercase text-stone-400">{t('read_case_study')}</span>
                         )}
                       </div>
                     </div>

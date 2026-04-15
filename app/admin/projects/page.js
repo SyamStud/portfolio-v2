@@ -1,18 +1,74 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trash2, Edit, Image as ImageIcon, Plus, X, Lock, CheckCircle, Film, Link2 } from 'lucide-react';
+import { Trash2, Edit, Plus, CheckCircle, GripVertical } from 'lucide-react';
+
+function BilingualInput({ label, valueEn, valueId, onChangeEn, onChangeId, required = false, type = 'text', rows, hint }) {
+  const [activeLang, setActiveLang] = useState('en');
+  const isTextarea = type === 'textarea';
+  const inputClasses = "w-full px-4 py-2.5 border border-stone-200 rounded-xl bg-white text-stone-900 text-[14px] focus:ring-2 focus:ring-stone-300 focus:border-stone-400 transition-all duration-200 placeholder:text-stone-300";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="block text-[12px] font-semibold tracking-[0.06em] uppercase text-stone-500">
+          {label}
+          {hint && <span className="text-[10px] font-normal text-stone-300 ml-2 normal-case tracking-normal">{hint}</span>}
+        </label>
+        <div className="inline-flex items-center rounded-lg border border-stone-200 bg-stone-50 overflow-hidden text-[10px] font-bold tracking-wider uppercase">
+          <button type="button" onClick={() => setActiveLang('en')} className={`px-2.5 py-1 transition-all ${activeLang === 'en' ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-600'}`}>EN</button>
+          <button type="button" onClick={() => setActiveLang('id')} className={`px-2.5 py-1 transition-all ${activeLang === 'id' ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-600'}`}>ID</button>
+        </div>
+      </div>
+      {isTextarea ? (
+        <>
+          <textarea rows={rows || 4} required={required && activeLang === 'en'} value={activeLang === 'en' ? valueEn : valueId} onChange={e => activeLang === 'en' ? onChangeEn(e.target.value) : onChangeId(e.target.value)} placeholder={activeLang === 'en' ? 'English version' : 'Versi Bahasa Indonesia'} className={`${inputClasses} resize-y font-mono text-[13px]`} />
+          <div className="flex items-center justify-between mt-1">
+            {activeLang === 'en' && valueId ? <p className="text-[10px] text-emerald-500">✓ ID version filled</p> : <div/>}
+            {activeLang === 'id' && valueEn ? <p className="text-[10px] text-emerald-500">✓ EN version filled</p> : <div/>}
+            {hint === "(Markdown supported)" && <p className="text-[10px] text-stone-400 font-mono">* Markdown syntax active</p>}
+          </div>
+        </>
+      ) : (
+        <>
+          <input type={type} required={required && activeLang === 'en'} value={activeLang === 'en' ? valueEn : valueId} onChange={e => activeLang === 'en' ? onChangeEn(e.target.value) : onChangeId(e.target.value)} placeholder={activeLang === 'en' ? 'English version' : 'Versi Bahasa Indonesia'} className={inputClasses} />
+          {activeLang === 'en' && valueId && <p className="text-[10px] text-emerald-500 mt-1">✓ ID version filled</p>}
+          {activeLang === 'id' && valueEn && <p className="text-[10px] text-emerald-500 mt-1">✓ EN version filled</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
+function extractBilingual(field) {
+  if (!field) return { en: '', id: '' };
+  if (typeof field === 'string') return { en: field, id: '' };
+  return { en: field.en || '', id: field.id || '' };
+}
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState([]);
-  const [form, setForm] = useState({ title: '', description: '', content: '', demoUrl: '', repoUrl: '', order: 0, proprietary: false, youtubeUrl: '' });
-  const [images, setImages] = useState([]);
+  const [form, setForm] = useState({
+    title_en: '', title_id: '',
+    description_en: '', description_id: '',
+    content_en: '', content_id: '',
+    demoUrl: '', repoUrl: '',
+    youtubeUrl: '', order: 0, proprietary: false
+  });
+  
+  // Tech Stack Handlers
+  const [techStack, setTechStack] = useState([]);
+  const [techInput, setTechInput] = useState('');
+  const [availableTechs, setAvailableTechs] = useState([]);
+  const [isTechDropdownOpen, setIsTechDropdownOpen] = useState(false);
+
+  // Files
+  const [imageFiles, setImageFiles] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
   const [videoFile, setVideoFile] = useState(null);
-  const [existingVideo, setExistingVideo] = useState('');
+  const [existingVideoUrl, setExistingVideoUrl] = useState('');
   const [removeVideo, setRemoveVideo] = useState(false);
-  const [techStack, setTechStack] = useState([]);
-  const [availableTechs, setAvailableTechs] = useState([]);
+
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -25,12 +81,16 @@ export default function ProjectsPage() {
       .catch(console.error);
   };
 
-  useEffect(() => {
-    fetchProjects();
+  const fetchTechs = () => {
     fetch('/api/techs')
       .then(res => res.json())
       .then(data => setAvailableTechs(data))
       .catch(console.error);
+  };
+
+  useEffect(() => { 
+    fetchProjects(); 
+    fetchTechs();
   }, []);
 
   const showToast = (msg) => {
@@ -38,104 +98,140 @@ export default function ProjectsPage() {
     setTimeout(() => setToast(''), 3000);
   };
 
+  const handleTechAdd = (techName) => {
+    const name = techName.trim();
+    if (!name) return;
+    
+    if (techStack.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+      setTechInput('');
+      setIsTechDropdownOpen(false);
+      return; 
+    }
+
+    const matchedTech = availableTechs.find(t => t.name.toLowerCase() === name.toLowerCase());
+    const newTech = matchedTech ? { name: matchedTech.name, logo: matchedTech.logo } : { name, logo: '' };
+
+    setTechStack([...techStack, newTech]);
+    setTechInput('');
+    setIsTechDropdownOpen(false);
+  };
+
+  const handleTechRemove = (indexToRemove) => {
+    setTechStack(techStack.filter((_, idx) => idx !== indexToRemove));
+  };
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     const formData = new FormData();
-    formData.append('title', form.title);
-    formData.append('description', form.description);
-    formData.append('content', form.content);
+    formData.append('title', JSON.stringify({ en: form.title_en, id: form.title_id }));
+    formData.append('description', JSON.stringify({ en: form.description_en, id: form.description_id }));
+    formData.append('content', JSON.stringify({ en: form.content_en, id: form.content_id }));
     formData.append('demoUrl', form.demoUrl);
     formData.append('repoUrl', form.repoUrl);
+    formData.append('youtubeUrl', form.youtubeUrl);
     formData.append('order', form.order);
     formData.append('proprietary', form.proprietary);
-    formData.append('youtubeUrl', form.youtubeUrl);
-
-    if (videoFile) formData.append('videoFile', videoFile);
-    if (removeVideo) formData.append('removeVideo', 'true');
-
-    Array.from(images).forEach(file => {
-      formData.append('images', file);
-    });
-
-    existingImages.forEach(img => {
-      formData.append('existingImages', img);
-    });
-
     formData.append('techStackData', JSON.stringify(techStack));
+
+    for (let i = 0; i < imageFiles.length; i++) {
+      formData.append('images', imageFiles[i]);
+    }
+
+    if (videoFile) {
+      formData.append('videoFile', videoFile);
+    }
+    
+    if (editingId) {
+      existingImages.forEach(url => formData.append('existingImages', url));
+      if (removeVideo) formData.append('removeVideo', 'true');
+    }
 
     const method = editingId ? 'PUT' : 'POST';
     const url = editingId ? `/api/projects/${editingId}` : '/api/projects';
 
-    await fetch(url, { method, body: formData });
-
-    showToast(editingId ? 'Project updated!' : 'Project published!');
-    resetForm();
-    fetchProjects();
+    try {
+      const res = await fetch(url, { method, body: formData });
+      if (!res.ok) throw new Error('Failed to save');
+      showToast(editingId ? 'Project updated!' : 'Project created!');
+      resetForm();
+      fetchProjects();
+    } catch (err) {
+      console.error(err);
+      showToast('Error saving project');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEdit = (proj) => {
+  const handleEdit = (project) => {
+    const titleBi = extractBilingual(project.title);
+    const descBi = extractBilingual(project.description);
+    const contentBi = extractBilingual(project.content);
+
     setForm({
-      title: proj.title,
-      description: proj.description,
-      content: proj.content || '',
-      demoUrl: proj.demoUrl || '',
-      repoUrl: proj.repoUrl || '',
-      order: proj.order || 0,
-      proprietary: proj.proprietary || false,
-      youtubeUrl: proj.youtubeUrl || ''
+      title_en: titleBi.en,
+      title_id: titleBi.id,
+      description_en: descBi.en,
+      description_id: descBi.id,
+      content_en: contentBi.en,
+      content_id: contentBi.id,
+      demoUrl: project.demoUrl || '',
+      repoUrl: project.repoUrl || '',
+      youtubeUrl: project.youtubeUrl || '',
+      order: project.order || 0,
+      proprietary: project.proprietary || false,
     });
-    setExistingImages(proj.images || []);
-    setExistingVideo(proj.videoUrl || '');
+    setTechStack(project.techStack || []);
+    setExistingImages(project.images || []);
+    setImageFiles([]);
+    setExistingVideoUrl(project.videoUrl || '');
     setVideoFile(null);
     setRemoveVideo(false);
-    setTechStack(proj.techStack || []);
-    setImages([]);
-    setEditingId(proj._id);
+    setEditingId(project._id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirm('Delete this project?')) return;
     await fetch(`/api/projects/${id}`, { method: 'DELETE' });
     showToast('Project deleted.');
     fetchProjects();
   };
 
   const resetForm = () => {
-    setForm({ title: '', description: '', content: '', demoUrl: '', repoUrl: '', order: 0, proprietary: false, youtubeUrl: '' });
-    setImages([]);
+    setForm({
+      title_en: '', title_id: '',
+      description_en: '', description_id: '',
+      content_en: '', content_id: '',
+      demoUrl: '', repoUrl: '', youtubeUrl: '', order: 0, proprietary: false
+    });
+    setTechStack([]);
+    setImageFiles([]);
     setExistingImages([]);
     setVideoFile(null);
-    setExistingVideo('');
+    setExistingVideoUrl('');
     setRemoveVideo(false);
-    setTechStack([]);
     setEditingId(null);
-    setLoading(false);
   };
 
-  const removeExistingImage = (index) => {
-    setExistingImages(existingImages.filter((_, i) => i !== index));
-  };
-
-  const toggleTech = (tech) => {
-    const exists = techStack.find(t => t.name === tech.name);
-    if (exists) {
-      setTechStack(prev => prev.filter(t => t.name !== tech.name));
-    } else {
-      setTechStack(prev => [...prev, { name: tech.name, logo: tech.logo }]);
-    }
-  };
-
-  const removeTechItem = (index) => {
-    setTechStack(techStack.filter((_, i) => i !== index));
+  const removeExistingImage = (idx) => {
+    setExistingImages(existingImages.filter((_, i) => i !== idx));
   };
 
   const inputClasses = "w-full px-4 py-2.5 border border-stone-200 rounded-xl bg-white text-stone-900 text-[14px] focus:ring-2 focus:ring-stone-300 focus:border-stone-400 transition-all duration-200 placeholder:text-stone-300";
   const labelClasses = "block text-[12px] font-semibold tracking-[0.06em] uppercase text-stone-500 mb-2";
 
+  const displayTitle = (title) => {
+    if (!title) return '';
+    if (typeof title === 'string') return title;
+    return title.en || title.id || '';
+  };
+
   return (
-    <div className="max-w-7xl mx-auto pt-8 md:pt-0">
+    <div className="max-w-7xl mx-auto pt-8 md:pt-0 pb-12">
       {/* Toast */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 flex items-center gap-2 px-5 py-3 bg-stone-900 text-white text-sm font-medium rounded-xl shadow-lg">
@@ -150,247 +246,261 @@ export default function ProjectsPage() {
           <div className="w-6 h-px bg-stone-400" />
           <span className="text-[10px] font-semibold tracking-[0.25em] uppercase text-stone-400">Manage</span>
         </div>
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] text-stone-900">Projects Portfolio</h1>
-        <p className="text-[14px] text-stone-500 mt-1.5">Manage your creative work, case studies, and image galleries.</p>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] text-stone-900">Projects</h1>
+        <p className="text-[14px] text-stone-500 mt-1.5">Manage your portfolio projects and case studies.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        
+        {/* Form Section */}
+        <div className="order-2 xl:order-1">
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-8 pb-4 border-b border-stone-100">
+              <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center">
+                <Plus size={16} className="text-stone-600" />
+              </div>
+              <h3 className="text-[14px] font-semibold tracking-[0.08em] uppercase text-stone-600">{editingId ? 'Edit Project' : 'Add New Project'}</h3>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+              
+              {/* Basic Info */}
+              <div className="space-y-4">
+                <BilingualInput
+                  label="Project Title"
+                  valueEn={form.title_en}
+                  valueId={form.title_id}
+                  onChangeEn={v => setForm({...form, title_en: v})}
+                  onChangeId={v => setForm({...form, title_id: v})}
+                  required
+                />
+                
+                <BilingualInput
+                  label="Short Description"
+                  type="textarea"
+                  rows={2}
+                  valueEn={form.description_en}
+                  valueId={form.description_id}
+                  onChangeEn={v => setForm({...form, description_en: v})}
+                  onChangeId={v => setForm({...form, description_id: v})}
+                  required
+                  hint="(Used in cards)"
+                />
+
+                <BilingualInput
+                  label="Full Case Study"
+                  type="textarea"
+                  rows={8}
+                  valueEn={form.content_en}
+                  valueId={form.content_id}
+                  onChangeEn={v => setForm({...form, content_en: v})}
+                  onChangeId={v => setForm({...form, content_id: v})}
+                  hint="(Markdown supported)"
+                />
+              </div>
+
+              <hr className="border-stone-100" />
+
+              {/* Links & Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClasses}>Live Demo URL</label>
+                  <input type="url" value={form.demoUrl} onChange={e => setForm({...form, demoUrl: e.target.value})} className={inputClasses} placeholder="https://" />
+                </div>
+                <div>
+                  <label className={labelClasses}>Repository URL</label>
+                  <input type="url" value={form.repoUrl} onChange={e => setForm({...form, repoUrl: e.target.value})} className={inputClasses} placeholder="https://" />
+                </div>
+                <div>
+                  <label className={labelClasses}>YouTube Video URL</label>
+                  <input type="url" value={form.youtubeUrl} onChange={e => setForm({...form, youtubeUrl: e.target.value})} className={inputClasses} placeholder="https://youtube.com/..." />
+                </div>
+                <div>
+                  <label className={labelClasses}>Display Order</label>
+                  <input type="number" value={form.order} onChange={e => setForm({...form, order: Number(e.target.value)})} className={inputClasses} />
+                </div>
+              </div>
+
+              {/* Tech Stack */}
+              <div>
+                <label className={labelClasses}>Tech Stack</label>
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    value={techInput}
+                    onChange={(e) => {
+                      setTechInput(e.target.value);
+                      setIsTechDropdownOpen(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleTechAdd(techInput);
+                      }
+                    }}
+                    placeholder="Type tech name and press Enter..." 
+                    className={inputClasses} 
+                  />
+                  
+                  {isTechDropdownOpen && techInput && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-stone-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {availableTechs
+                        .filter(t => t.name.toLowerCase().includes(techInput.toLowerCase()))
+                        .map((t, idx) => (
+                          <div 
+                            key={idx} 
+                            className="px-4 py-2 hover:bg-stone-50 cursor-pointer text-sm text-stone-700 flex items-center gap-2"
+                            onClick={() => handleTechAdd(t.name)}
+                          >
+                            {t.logo && <img src={t.logo} alt={t.name} className="w-4 h-4 object-contain" />}
+                            {t.name}
+                          </div>
+                      ))}
+                      <div 
+                        className="px-4 py-2 border-t border-stone-100 text-sm text-stone-500 hover:bg-stone-50 cursor-pointer italic"
+                        onClick={() => handleTechAdd(techInput)}
+                      >
+                        Add "{techInput}" as custom tech
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {techStack.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {techStack.map((tech, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 border border-stone-200 rounded-lg text-[12px] font-medium text-stone-700">
+                        {tech.logo && <img src={tech.logo} alt={tech.name} className="w-3.5 h-3.5 object-contain" />}
+                        {tech.name}
+                        <button type="button" onClick={() => handleTechRemove(idx)} className="ml-1 text-stone-400 hover:text-red-500">&times;</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Toggles */}
+              <label className="flex items-center gap-3 cursor-pointer select-none p-4 rounded-xl border border-stone-200/60 bg-stone-50">
+                <input type="checkbox" checked={form.proprietary} onChange={e => setForm({...form, proprietary: e.target.checked})} className="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-300" />
+                <div className="flex flex-col">
+                  <span className="text-[13px] font-semibold text-stone-900">Proprietary / Closed Source</span>
+                  <span className="text-[11px] text-stone-500">Hide source code links and add a badge</span>
+                </div>
+              </label>
+
+              <hr className="border-stone-100" />
+
+              {/* Media */}
+              <div>
+                <label className={labelClasses}>Project Images</label>
+                {existingImages.length > 0 && (
+                  <div className="flex gap-4 mb-4 overflow-x-auto pb-2">
+                    {existingImages.map((src, idx) => (
+                      <div key={idx} className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-stone-200 group">
+                        <img src={src} alt="Existing" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => removeExistingImage(idx)} className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input type="file" multiple accept="image/*" onChange={e => setImageFiles(Array.from(e.target.files))} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 transition-all cursor-pointer" />
+                {imageFiles.length > 0 && <p className="text-[11px] text-stone-500 mt-2">{imageFiles.length} new image(s) selected.</p>}
+              </div>
+
+              <div>
+                <label className={labelClasses}>Project Video (Local Upload)</label>
+                {existingVideoUrl && !removeVideo && (
+                  <div className="mb-3 flex items-center justify-between p-3 rounded-lg border border-stone-200 bg-stone-50">
+                    <span className="text-[12px] text-stone-600 truncate">Video currently uploaded</span>
+                    <button type="button" onClick={() => setRemoveVideo(true)} className="text-[11px] text-red-500 font-medium px-2 py-1 hover:bg-red-50 rounded">Remove Video</button>
+                  </div>
+                )}
+                {removeVideo && (
+                  <p className="text-[12px] text-amber-600 mb-3 font-medium">Video will be removed on save.</p>
+                )}
+                <input type="file" accept="video/mp4,video/webm" onChange={e => setVideoFile(e.target.files[0])} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 transition-all cursor-pointer" />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-6 border-t border-stone-100 mt-2">
+                <button type="button" onClick={resetForm} className="px-6 py-3 bg-stone-50 text-stone-600 border border-stone-200 text-[13px] font-semibold rounded-xl hover:bg-stone-100 transition-colors">
+                  Clear
+                </button>
+                <button type="submit" disabled={loading} className="flex-1 px-6 py-3 bg-stone-900 text-white text-[13px] font-semibold rounded-xl hover:bg-stone-700 transition-all duration-200 shadow-sm disabled:opacity-50">
+                  {loading ? 'Saving Project...' : (editingId ? 'Update Project' : 'Publish Project')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
         {/* List Section */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl border border-stone-200/80 p-5 md:p-6">
+        <div className="order-1 xl:order-2">
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-5 md:p-6 sticky top-6">
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-stone-100">
               <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-stone-400">01</span>
               <div className="w-4 h-px bg-stone-200" />
-              <h3 className="text-[13px] font-semibold tracking-[0.08em] uppercase text-stone-600">Projects</h3>
+              <h3 className="text-[13px] font-semibold tracking-[0.08em] uppercase text-stone-600">Published Projects</h3>
               <span className="ml-auto text-[11px] font-medium text-stone-400 bg-stone-100 px-2.5 py-1 rounded-full">{projects.length}</span>
             </div>
 
             {fetching ? (
               <div className="space-y-4">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="animate-pulse p-4 rounded-xl border border-stone-100">
-                    <div className="h-4 bg-stone-100 rounded w-3/4 mb-3" />
-                    <div className="h-3 bg-stone-100 rounded w-full mb-2" />
-                    <div className="flex gap-2">
-                      <div className="h-5 bg-stone-100 rounded w-16" />
-                      <div className="h-5 bg-stone-100 rounded w-12" />
+                  <div key={i} className="animate-pulse flex items-center p-3 rounded-xl border border-stone-100">
+                    <div className="w-16 h-12 bg-stone-200 rounded-lg mr-4 shrink-0" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-stone-200 rounded w-1/2 mb-2" />
+                      <div className="h-3 bg-stone-100 rounded w-1/4" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : projects.length === 0 ? (
-              <p className="text-stone-400 text-center py-12 text-[14px]">No projects added yet.</p>
+              <p className="text-stone-400 text-center py-12 text-[14px]">No projects found.</p>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
                 {projects.map(proj => (
-                  <div key={proj._id} className="group flex flex-col p-4 border border-stone-100 rounded-xl hover:border-stone-200 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-all duration-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="min-w-0">
-                        <h4 className="font-semibold text-stone-900 text-[14px] leading-snug pr-2">{proj.title}</h4>
-                        <span className="text-[11px] text-stone-400">Order: {proj.order || 0}</span>
-                      </div>
-                      <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button onClick={() => handleEdit(proj)} className="p-1.5 text-stone-500 bg-stone-50 border border-stone-200 hover:bg-stone-100 rounded-lg transition-colors"><Edit size={13} /></button>
-                        <button onClick={() => handleDelete(proj._id)} className="p-1.5 text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={13} /></button>
+                  <div key={proj._id} className={`group flex items-center p-3 border rounded-xl transition-all duration-200 ${editingId === proj._id ? 'border-stone-400 bg-stone-50 shadow-sm' : 'border-stone-100 hover:border-stone-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white'}`}>
+                    
+                    <div className="w-16 h-12 shrink-0 rounded-lg overflow-hidden bg-stone-100 border border-stone-200 mr-4">
+                      {proj.images && proj.images.length > 0 ? (
+                        <img src={proj.images[0]} alt="Thumbnail" className="w-full h-full object-cover" />
+                      ) : (
+                         <div className="w-full h-full flex items-center justify-center text-[8px] text-stone-400 uppercase font-bold">No Img</div>
+                      )}
+                    </div>
+                    
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-semibold text-stone-900 text-[14px] truncate pb-0.5">{displayTitle(proj.title)}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-mono text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">Order: {proj.order || 0}</span>
+                        {proj.proprietary && <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase tracking-wider">Proprietary</span>}
                       </div>
                     </div>
-                    <p className="text-[13px] text-stone-500 mb-3 line-clamp-2 leading-relaxed">{proj.description}</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="flex items-center text-[11px] text-stone-600 font-medium bg-stone-100 px-2 py-0.5 rounded-md">
-                        <ImageIcon size={11} className="mr-1" /> {proj.images?.length || 0}
-                      </div>
-                      {proj.techStack?.length > 0 && (
-                        <div className="text-[11px] text-stone-600 font-medium bg-stone-100 px-2 py-0.5 rounded-md">
-                          {proj.techStack.length} Tech
-                        </div>
-                      )}
-                      {proj.proprietary && (
-                        <div className="flex items-center text-[11px] text-amber-700 font-medium bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
-                          <Lock size={10} className="mr-1" /> Private
-                        </div>
-                      )}
+                    
+                    <div className="flex gap-1.5 shrink-0 ml-3">
+                      <button onClick={() => handleEdit(proj)} className={`p-2 rounded-lg transition-colors ${editingId === proj._id ? 'bg-stone-900 text-white' : 'text-stone-500 bg-stone-50 border border-stone-200 hover:bg-stone-100'}`}>
+                        <Edit size={14} />
+                      </button>
+                      <button onClick={() => handleDelete(proj._id)} className="p-2 text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 rounded-lg transition-colors">
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        </div>
+            
+            <style jsx>{`
+              .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+              .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+              .custom-scrollbar::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 4px; }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #d6d3d1; }
+            `}</style>
 
-        {/* Form Section */}
-        <div className="lg:col-span-3">
-          <div className="bg-white rounded-2xl border border-stone-200/80 p-5 md:p-6 sticky top-6">
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-stone-100">
-              <div className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center">
-                <Plus size={14} className="text-stone-600" />
-              </div>
-              <h3 className="text-[13px] font-semibold tracking-[0.08em] uppercase text-stone-600">{editingId ? 'Edit' : 'New'} Project</h3>
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <div>
-                <label className={labelClasses}>Project Title</label>
-                <input type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} required className={inputClasses} />
-              </div>
-
-              <div>
-                <label className={labelClasses}>Short Description</label>
-                <input type="text" value={form.description} onChange={e => setForm({...form, description: e.target.value})} required className={inputClasses} />
-              </div>
-
-              <div>
-                <label className={labelClasses}>Full Content / Case Study</label>
-                <textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} rows={5} className={`${inputClasses} resize-y font-mono text-[13px]`}></textarea>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className={labelClasses}>Live Demo URL</label>
-                  <input type="url" value={form.demoUrl} onChange={e => setForm({...form, demoUrl: e.target.value})} className={inputClasses} />
-                </div>
-                <div>
-                  <label className={labelClasses}>GitHub Repo</label>
-                  <input type="url" value={form.repoUrl} onChange={e => setForm({...form, repoUrl: e.target.value})} className={inputClasses} />
-                </div>
-                <div>
-                  <label className={labelClasses}>Display Order</label>
-                  <input type="number" value={form.order} onChange={e => setForm({...form, order: parseInt(e.target.value) || 0})} className={inputClasses} />
-                </div>
-              </div>
-
-              {/* Proprietary toggle */}
-              <label className="flex items-center gap-3 p-4 bg-stone-50 rounded-xl border border-stone-200 cursor-pointer select-none hover:border-stone-300 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={form.proprietary}
-                  onChange={e => setForm({...form, proprietary: e.target.checked})}
-                  className="w-4 h-4 text-stone-900 border-stone-300 rounded focus:ring-stone-300"
-                />
-                <div className="flex items-center gap-2 text-[13px] font-medium text-stone-600">
-                  <Lock size={14} className="text-amber-600" />
-                  Proprietary project (source code not public)
-                </div>
-              </label>
-
-              {/* Video & Media */}
-              <div className="p-5 bg-stone-50 rounded-xl border border-stone-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Film size={15} className="text-stone-500" />
-                  <label className="text-[12px] font-bold tracking-[0.06em] uppercase text-stone-700">Video & Media</label>
-                </div>
-
-                <div className="mb-4">
-                  <label className={labelClasses}>YouTube Embed URL</label>
-                  <input type="url" placeholder="https://www.youtube.com/watch?v=..." value={form.youtubeUrl} onChange={e => setForm({...form, youtubeUrl: e.target.value})} className={inputClasses} />
-                  <p className="text-[11px] text-stone-400 mt-1">If provided, YouTube video will be embedded as main media.</p>
-                </div>
-
-                <div>
-                  <label className={labelClasses}>Upload Video File</label>
-                  <input type="file" accept="video/*" onChange={e => setVideoFile(e.target.files[0])} className="block w-full text-sm text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[12px] file:font-semibold file:bg-stone-200 file:text-stone-700 hover:file:bg-stone-300 transition-all cursor-pointer" />
-
-                  {existingVideo && !removeVideo && (
-                    <div className="mt-3 bg-white border border-stone-200 rounded-xl p-3 flex items-center gap-3">
-                      <video src={existingVideo} className="h-16 rounded-lg bg-black" />
-                      <div className="flex flex-col flex-1">
-                        <span className="text-[13px] font-medium text-stone-700">Existing Video</span>
-                        <button type="button" onClick={() => setRemoveVideo(true)} className="text-[12px] text-red-500 hover:text-red-700 text-left mt-1">Remove video</button>
-                      </div>
-                    </div>
-                  )}
-                  {removeVideo && existingVideo && (
-                    <p className="text-[12px] text-amber-600 font-medium mt-2">Video will be removed on save.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Image Gallery */}
-              <div className="p-5 bg-stone-50 rounded-xl border border-stone-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <ImageIcon size={15} className="text-stone-500" />
-                  <label className="text-[12px] font-bold tracking-[0.06em] uppercase text-stone-700">Image Gallery</label>
-                </div>
-                <input type="file" multiple accept="image/*" onChange={e => setImages(e.target.files)} className="block w-full text-sm text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[12px] file:font-semibold file:bg-stone-200 file:text-stone-700 hover:file:bg-stone-300 transition-all cursor-pointer mb-4" />
-
-                {existingImages.length > 0 && (
-                  <div className="mt-3 border-t border-stone-200 pt-4">
-                    <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-stone-400 mb-3">Current Images (click to remove)</p>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                      {existingImages.map((src, i) => (
-                        <div key={i} className="relative group cursor-pointer aspect-square rounded-xl overflow-hidden border border-stone-200" onClick={() => removeExistingImage(i)}>
-                          <img src={src} alt="Project" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <span className="text-white text-[11px] font-bold">Remove</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Tech Stack */}
-              <div className="p-5 bg-stone-50 rounded-xl border border-stone-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Link2 size={15} className="text-stone-500" />
-                  <label className="text-[12px] font-bold tracking-[0.06em] uppercase text-stone-700">Tech Stack</label>
-                </div>
-                <p className="text-[12px] text-stone-400 mb-4">Click technologies to toggle selection.</p>
-
-                {techStack.length > 0 && (
-                  <div className="mb-4 p-3 bg-white rounded-xl border border-stone-200 flex flex-wrap gap-2">
-                    <span className="w-full text-[10px] font-semibold tracking-[0.15em] text-stone-400 uppercase mb-1">Selected:</span>
-                    {techStack.map((t, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-stone-900 text-white text-[11px] font-medium rounded-lg">
-                        {t.logo && <img src={t.logo} alt={t.name} className="w-3.5 h-3.5 object-contain brightness-0 invert" />}
-                        {t.name}
-                        <button type="button" onClick={() => removeTechItem(i)} className="ml-1 text-stone-400 hover:text-red-400"><X size={11} /></button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto">
-                  {availableTechs.length === 0 ? (
-                    <p className="col-span-full text-[13px] text-stone-400 text-center py-4">No Tech Stack registered yet.</p>
-                  ) : (
-                    availableTechs.map((tech) => (
-                      <button
-                        type="button"
-                        key={tech._id}
-                        onClick={() => toggleTech(tech)}
-                        className={`flex items-center gap-2 px-3 py-2 border rounded-xl transition-all duration-200 ${
-                          techStack.some(t => t.name === tech.name)
-                            ? 'bg-stone-900 border-stone-900 text-white shadow-md'
-                            : 'bg-white border-stone-200 text-stone-600 hover:border-stone-400 hover:bg-stone-50'
-                        }`}
-                      >
-                        {tech.logo && (
-                          <img
-                            src={tech.logo}
-                            alt={tech.name}
-                            className={`w-5 h-5 object-contain rounded-sm ${techStack.some(t => t.name === tech.name) ? 'brightness-0 invert' : ''}`}
-                          />
-                        )}
-                        <span className="text-[12px] font-medium truncate">{tech.name}</span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Submit */}
-              <div className="flex gap-3 pt-4 border-t border-stone-100">
-                <button type="submit" disabled={loading} className="flex-1 px-4 py-2.5 bg-stone-900 text-white text-[13px] font-semibold rounded-xl hover:bg-stone-700 transition-all duration-200 disabled:opacity-50">
-                  {loading ? 'Uploading & Saving...' : (editingId ? 'Update Project' : 'Publish Project')}
-                </button>
-                {editingId && (
-                  <button type="button" onClick={resetForm} className="px-6 py-2.5 bg-stone-50 text-stone-600 border border-stone-200 text-[13px] font-medium rounded-xl hover:bg-stone-100 transition-colors">
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </form>
           </div>
         </div>
       </div>

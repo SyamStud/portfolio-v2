@@ -3,9 +3,69 @@
 import { useState, useEffect } from 'react';
 import { Save, CheckCircle } from 'lucide-react';
 
+function BilingualInput({ label, valueEn, valueId, onChangeEn, onChangeId, required = false, type = 'text', rows }) {
+  const [activeLang, setActiveLang] = useState('en');
+  const isTextarea = type === 'textarea';
+  const inputClasses = "w-full px-4 py-2.5 border border-stone-200 rounded-xl bg-white text-stone-900 text-[14px] focus:ring-2 focus:ring-stone-300 focus:border-stone-400 transition-all duration-200 placeholder:text-stone-300";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="block text-[12px] font-semibold tracking-[0.06em] uppercase text-stone-500">{label}</label>
+        <div className="inline-flex items-center rounded-lg border border-stone-200 bg-stone-50 overflow-hidden text-[10px] font-bold tracking-wider uppercase">
+          <button
+            type="button"
+            onClick={() => setActiveLang('en')}
+            className={`px-2.5 py-1 transition-all ${activeLang === 'en' ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-600'}`}
+          >EN</button>
+          <button
+            type="button"
+            onClick={() => setActiveLang('id')}
+            className={`px-2.5 py-1 transition-all ${activeLang === 'id' ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-600'}`}
+          >ID</button>
+        </div>
+      </div>
+      {isTextarea ? (
+        <>
+          <textarea
+            rows={rows || 4}
+            required={required && activeLang === 'en'}
+            value={activeLang === 'en' ? valueEn : valueId}
+            onChange={e => activeLang === 'en' ? onChangeEn(e.target.value) : onChangeId(e.target.value)}
+            placeholder={activeLang === 'en' ? 'English version' : 'Versi Bahasa Indonesia'}
+            className={`${inputClasses} resize-y`}
+          />
+          {activeLang === 'en' && valueId && <p className="text-[10px] text-emerald-500 mt-1">✓ ID version filled</p>}
+          {activeLang === 'id' && valueEn && <p className="text-[10px] text-emerald-500 mt-1">✓ EN version filled</p>}
+        </>
+      ) : (
+        <>
+          <input
+            type={type}
+            required={required && activeLang === 'en'}
+            value={activeLang === 'en' ? valueEn : valueId}
+            onChange={e => activeLang === 'en' ? onChangeEn(e.target.value) : onChangeId(e.target.value)}
+            placeholder={activeLang === 'en' ? 'English version' : 'Versi Bahasa Indonesia'}
+            className={inputClasses}
+          />
+          {activeLang === 'en' && valueId && <p className="text-[10px] text-emerald-500 mt-1">✓ ID version filled</p>}
+          {activeLang === 'id' && valueEn && <p className="text-[10px] text-emerald-500 mt-1">✓ EN version filled</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
+// Helper to extract en/id from a field (supports legacy string)
+function extractBilingual(field) {
+  if (!field) return { en: '', id: '' };
+  if (typeof field === 'string') return { en: field, id: '' };
+  return { en: field.en || '', id: field.id || '' };
+}
+
 export default function ProfileSettingsPage() {
   const [profile, setProfile] = useState({
-    name: '', title: '', bio: '', email: '', github: '', linkedin: '', resumeLink: '', skills: '', image: ''
+    name: '', title_en: '', title_id: '', bio_en: '', bio_id: '', email: '', github: '', linkedin: '', resumeLink: '', skills: '', image: ''
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
@@ -18,8 +78,14 @@ export default function ProfileSettingsPage() {
       .then(res => res.json())
       .then(data => {
         if (data && Object.keys(data).length > 0) {
+          const titleBi = extractBilingual(data.title);
+          const bioBi = extractBilingual(data.bio);
           setProfile({
             ...data,
+            title_en: titleBi.en,
+            title_id: titleBi.id,
+            bio_en: bioBi.en,
+            bio_id: bioBi.id,
             skills: data.skills ? data.skills.join(', ') : ''
           });
           if (data.image) setImagePreview(data.image);
@@ -43,14 +109,14 @@ export default function ProfileSettingsPage() {
     try {
       const formData = new FormData();
       formData.append('name', profile.name);
-      formData.append('title', profile.title);
-      formData.append('bio', profile.bio);
+      formData.append('title', JSON.stringify({ en: profile.title_en, id: profile.title_id }));
+      formData.append('bio', JSON.stringify({ en: profile.bio_en, id: profile.bio_id }));
       formData.append('email', profile.email || '');
       formData.append('github', profile.github || '');
       formData.append('linkedin', profile.linkedin || '');
       formData.append('resumeLink', profile.resumeLink || '');
       formData.append('skills', JSON.stringify(profile.skills.split(',').map(s => s.trim()).filter(s => s)));
-      
+
       if (imageFile) {
         formData.append('image', imageFile);
       } else if (profile.image) {
@@ -135,16 +201,14 @@ export default function ProfileSettingsPage() {
                 className={inputClasses}
               />
             </div>
-            <div>
-              <label className={labelClasses}>Job Title / Headline</label>
-              <input
-                type="text"
-                required
-                value={profile.title}
-                onChange={e => setProfile({...profile, title: e.target.value})}
-                className={inputClasses}
-              />
-            </div>
+            <BilingualInput
+              label="Job Title / Headline"
+              valueEn={profile.title_en}
+              valueId={profile.title_id}
+              onChangeEn={v => setProfile({...profile, title_en: v})}
+              onChangeId={v => setProfile({...profile, title_id: v})}
+              required
+            />
           </div>
 
           <div className="mb-5">
@@ -170,16 +234,16 @@ export default function ProfileSettingsPage() {
             </div>
           </div>
 
-          <div>
-            <label className={labelClasses}>Short Bio</label>
-            <textarea
-              rows="4"
-              required
-              value={profile.bio}
-              onChange={e => setProfile({...profile, bio: e.target.value})}
-              className={`${inputClasses} resize-y`}
-            ></textarea>
-          </div>
+          <BilingualInput
+            label="Short Bio"
+            type="textarea"
+            rows={4}
+            valueEn={profile.bio_en}
+            valueId={profile.bio_id}
+            onChangeEn={v => setProfile({...profile, bio_en: v})}
+            onChangeId={v => setProfile({...profile, bio_id: v})}
+            required
+          />
         </div>
 
         {/* Contact */}

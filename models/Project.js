@@ -3,18 +3,15 @@ import mongoose from "mongoose";
 const projectSchema = new mongoose.Schema(
   {
     title: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: [true, "Please provide a title"],
-      trim: true,
     },
     description: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: [true, "Please provide a description"],
-      trim: true,
     },
     content: {
-      type: String,
-      trim: true,
+      type: mongoose.Schema.Types.Mixed,
     },
     images: {
       type: [String],

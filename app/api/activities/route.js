@@ -27,13 +27,16 @@ export async function POST(req) {
     await connectToDatabase();
     const formData = await req.formData();
 
-    const title = formData.get('title');
     const date = formData.get('date');
     const type = formData.get('type') || 'EVENT';
-    const description = formData.get('description');
-    const content = formData.get('content');
     const featured = formData.get('featured') === 'true';
     const order = formData.get('order') || 0;
+
+    // Parse bilingual fields
+    let title, description, content;
+    try { title = JSON.parse(formData.get('title')); } catch { title = formData.get('title'); }
+    try { description = JSON.parse(formData.get('description')); } catch { description = formData.get('description'); }
+    try { content = JSON.parse(formData.get('content')); } catch { content = formData.get('content'); }
 
     let image = '';
     const imageFile = formData.get('image');

@@ -8,12 +8,11 @@ const profileSchema = new mongoose.Schema(
       trim: true,
     },
     title: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: true,
-      trim: true,
     },
     bio: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: true,
     },
     image: {

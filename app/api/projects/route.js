@@ -27,14 +27,17 @@ export async function POST(req) {
     await connectToDatabase();
     const formData = await req.formData();
     
-    const title = formData.get('title');
-    const description = formData.get('description');
-    const content = formData.get('content');
     const demoUrl = formData.get('demoUrl');
     const repoUrl = formData.get('repoUrl');
     const order = formData.get('order') || 0;
     const proprietary = formData.get('proprietary') === 'true';
     const youtubeUrl = formData.get('youtubeUrl') || '';
+
+    // Parse bilingual fields
+    let title, description, content;
+    try { title = JSON.parse(formData.get('title')); } catch { title = formData.get('title'); }
+    try { description = JSON.parse(formData.get('description')); } catch { description = formData.get('description'); }
+    try { content = JSON.parse(formData.get('content')); } catch { content = formData.get('content'); }
     
     let videoUrl = '';
     const videoFile = formData.get('videoFile');

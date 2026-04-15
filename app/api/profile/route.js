@@ -31,13 +31,18 @@ export async function POST(req) {
       const formData = await req.formData();
       dataToSave = {
         name: formData.get('name'),
-        title: formData.get('title'),
-        bio: formData.get('bio'),
         email: formData.get('email') || '',
         github: formData.get('github') || '',
         linkedin: formData.get('linkedin') || '',
         resumeLink: formData.get('resumeLink') || '',
       };
+
+      // Parse bilingual fields (sent as JSON strings)
+      const titleRaw = formData.get('title');
+      try { dataToSave.title = JSON.parse(titleRaw); } catch { dataToSave.title = titleRaw; }
+
+      const bioRaw = formData.get('bio');
+      try { dataToSave.bio = JSON.parse(bioRaw); } catch { dataToSave.bio = bioRaw; }
       
       const skillsData = formData.get('skills');
       if (skillsData) {
