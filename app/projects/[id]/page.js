@@ -137,7 +137,7 @@ export default async function ProjectDetailPage({ params }) {
               {project.title}
             </h1>
 
-            <p className="text-[17px] text-stone-500 leading-relaxed" style={{ textAlign: 'justify' }}>
+            <p className="text-[17px] text-stone-500 leading-relaxed text-justify">
               {project.description}
             </p>
 

@@ -16,6 +16,10 @@ const profileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    image: {
+      type: String,
+      trim: true,
+    },
     skills: {
       type: [String],
       default: [],
@@ -41,4 +45,7 @@ const profileSchema = new mongoose.Schema(
 );
 
 // We generally only need one profile, but using standard collection logic
+if (process.env.NODE_ENV !== 'production') {
+  delete mongoose.models.Profile;
+}
 export default mongoose.models.Profile || mongoose.model("Profile", profileSchema);

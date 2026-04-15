@@ -118,29 +118,46 @@ export default async function Home() {
               </span>
             </div>
 
-            <h1 className="text-[clamp(2.2rem,7.5vw,6rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-stone-900 mb-6 md:mb-8 max-w-4xl">
-              {profile.title}
-            </h1>
+            <div className="flex flex-col md:flex-row md:items-center gap-10 md:gap-16">
+              <div className="flex-1">
+                <h1 className="text-[clamp(2.2rem,7.5vw,6rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-stone-900 mb-6 md:mb-8 max-w-4xl">
+                  {profile.title}
+                </h1>
 
-            <p className="text-[15px] md:text-[17px] text-stone-500 leading-relaxed max-w-2xl mb-7 md:mb-8" style={{ textAlign: 'justify' }}>
-              {profile.bio}
-            </p>
+                <p className="text-[15px] md:text-[17px] text-stone-500 leading-relaxed max-w-2xl mb-7 md:mb-8 text-justify">
+                  {profile.bio}
+                </p>
 
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="#projects"
-                className="inline-flex items-center gap-2 px-5 md:px-6 py-2.5 md:py-3 rounded-full bg-stone-900 text-white text-sm font-medium hover:bg-stone-700 transition-all hover:-translate-y-0.5"
-              >
-                View Work
-                <span className="opacity-50">↓</span>
-              </a>
-              {profile.email && (
-                <a
-                  href="#contact"
-                  className="inline-flex items-center px-5 md:px-6 py-2.5 md:py-3 rounded-full border border-stone-300 text-stone-700 text-sm font-medium hover:border-stone-700 hover:bg-white transition-all hover:-translate-y-0.5"
-                >
-                  Get in Touch
-                </a>
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href="#projects"
+                    className="inline-flex items-center gap-2 px-5 md:px-6 py-2.5 md:py-3 rounded-full bg-stone-900 text-white text-sm font-medium hover:bg-stone-700 transition-all hover:-translate-y-0.5"
+                  >
+                    View Work
+                    <span className="opacity-50">↓</span>
+                  </a>
+                  {profile.email && (
+                    <a
+                      href="#contact"
+                      className="inline-flex items-center px-5 md:px-6 py-2.5 md:py-3 rounded-full border border-stone-300 text-stone-700 text-sm font-medium hover:border-stone-700 hover:bg-white transition-all hover:-translate-y-0.5"
+                    >
+                      Get in Touch
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {profile.image && (
+                <div className="md:w-1/3 max-w-[280px] shrink-0 self-start md:self-auto ml-auto md:ml-0 mt-8 md:mt-0 relative group perspective-1000">
+                  <div className="aspect-square w-full rounded-3xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15)] transition-all duration-500 ease-out md:rotate-3 md:group-hover:rotate-0 border-8 border-white bg-white">
+                    <img 
+                      src={profile.image} 
+                      alt={profile.name} 
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" 
+                    />
+                  </div>
+                  <div className="absolute inset-0 rounded-3xl border border-stone-200/50 pointer-events-none transition-all duration-500 md:rotate-3 md:group-hover:rotate-0" />
+                </div>
               )}
             </div>
 

@@ -14,9 +14,11 @@ export default async function AdminLayout({ children }) {
 
   return (
     <Providers>
-      <div className="flex min-h-screen bg-gray-50">
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');`}</style>
+      <div className="flex min-h-screen bg-[#F5F5F0]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
         <AdminSidebar />
-        <main className="flex-grow p-8 md:p-12 max-w-7xl mx-auto overflow-y-auto h-screen">
+        <main className="flex-grow p-5 md:p-10 max-w-7xl mx-auto overflow-y-auto h-screen w-full">
           {children}
         </main>
       </div>
