@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, ExternalLink, Github, Lock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ExternalLink, Github, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import FadeIn from '@/components/FadeIn';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -10,7 +10,7 @@ import TechStackMarquee from '@/components/TechStackMarquee';
 import { useLanguage } from '@/components/LanguageContext';
 import { getLocalized } from '@/lib/localize';
 
-export default function ProjectDetailClient({ project }) {
+export default function ProjectDetailClient({ project, prevProject, nextProject }) {
   const { language, t } = useLanguage();
 
   if (!project) {
@@ -36,6 +36,9 @@ export default function ProjectDetailClient({ project }) {
   const localizedContent = getLocalized(project.content, language);
   const images = project.images ?? [];
   const techStack = project.techStack ?? [];
+
+  const prevTitle = prevProject ? getLocalized(prevProject.title, language) : '';
+  const nextTitle = nextProject ? getLocalized(nextProject.title, language) : '';
 
   return (
     <div
@@ -99,6 +102,57 @@ export default function ProjectDetailClient({ project }) {
         .md-content td { padding: 0.6rem 0.875rem; border-bottom: 1px solid #f5f5f4; }
         .md-content tr:last-child td { border-bottom: none; }
         .md-content tr:hover td { background: #fafaf8; }
+
+        /* ── Prev/Next nav ── */
+        .proj-nav-footer {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        .proj-nav-card {
+          display: flex;
+          flex-direction: column;
+          padding: 20px 24px;
+          border-radius: 14px;
+          border: 1px solid #e7e5e4;
+          background: white;
+          text-decoration: none;
+          transition: all 0.25s ease;
+        }
+        .proj-nav-card:hover {
+          border-color: #d6d3d1;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+          transform: translateY(-2px);
+        }
+        .proj-nav-card .nav-label {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #a8a29e;
+          margin-bottom: 6px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .proj-nav-card .nav-title {
+          font-size: 15px;
+          font-weight: 600;
+          color: #1c1917;
+          line-height: 1.4;
+        }
+        .proj-nav-card.prev { text-align: left; }
+        .proj-nav-card.next { text-align: right; }
+        .proj-nav-card.next .nav-label { justify-content: flex-end; }
+
+        /* ── Project links row ── */
+        .proj-detail-links {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 10px;
+          margin-top: 16px;
+        }
       `}</style>
 
       {/* ── Navbar ── */}
@@ -118,7 +172,7 @@ export default function ProjectDetailClient({ project }) {
         <main className="max-w-5xl mx-auto px-8 pt-16">
 
           {/* ── Header ── */}
-          <section className="pt-20 pb-12 max-w-3xl">
+          <section className="pt-20 pb-12">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-px bg-stone-400" />
               <span className="text-[11px] font-semibold tracking-[0.25em] uppercase text-stone-500">{t('case_study')}</span>
@@ -131,34 +185,6 @@ export default function ProjectDetailClient({ project }) {
             <p className="text-[17px] text-stone-500 leading-relaxed text-justify">
               {localizedDesc}
             </p>
-
-            <div className="flex flex-wrap items-center gap-3 mt-8">
-              {project.demoUrl && (
-                <a
-                  href={project.demoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-stone-900 text-white text-sm font-medium hover:bg-stone-700 transition-all hover:-translate-y-0.5"
-                >
-                  <ExternalLink size={14} /> {t('live_demo')}
-                </a>
-              )}
-              {project.repoUrl && (
-                <a
-                  href={project.repoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-stone-300 text-stone-700 text-sm font-medium hover:border-stone-700 hover:bg-white transition-all hover:-translate-y-0.5"
-                >
-                  <Github size={14} /> {t('source_code')}
-                </a>
-              )}
-              {project.proprietary && (
-                <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold">
-                  <Lock size={13} /> {t('proprietary_project')}
-                </span>
-              )}
-            </div>
           </section>
 
           {/* ── Gallery ── */}
@@ -176,9 +202,46 @@ export default function ProjectDetailClient({ project }) {
             <TechStackMarquee techStack={techStack} />
           )}
 
+          {/* ── Status & Links (below tech stack, matching pill style) ── */}
+          {(project.demoUrl || project.repoUrl || project.proprietary) && (
+            <div style={{ paddingTop: 8, paddingBottom: 8 }}>
+              <div className="ts-header" style={{ marginBottom: 16 }}>
+                <div style={{ width: 24, height: 1, background: '#d6d3d1' }} />
+                <h3 style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#a8a29e' }}>Links & Status</h3>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {project.demoUrl && (
+                  <a
+                    href={project.demoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: '#1c1917', border: '1px solid #1c1917', borderRadius: 10, color: 'white', fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s ease' }}
+                  >
+                    <ExternalLink size={15} /> {t('live_demo')}
+                  </a>
+                )}
+                {project.repoUrl && (
+                  <a
+                    href={project.repoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'white', border: '1px solid #e7e5e4', borderRadius: 10, color: '#44403c', fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s ease' }}
+                  >
+                    <Github size={15} /> {t('source_code')}
+                  </a>
+                )}
+                {project.proprietary && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, color: '#b45309', fontSize: 13, fontWeight: 600 }}>
+                    <Lock size={14} /> {t('proprietary_project')}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* ── Markdown Content ── */}
           {localizedContent && (
-            <section className="py-12 max-w-3xl">
+            <section className="py-12">
               <div className="md-content">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {localizedContent}
@@ -187,14 +250,32 @@ export default function ProjectDetailClient({ project }) {
             </section>
           )}
 
-          {/* ── Footer ── */}
+          {/* ── Prev / Next Navigation ── */}
           <footer className="py-16 mt-8 border-t border-stone-200">
-            <Link
-              href="/#projects"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-stone-300 text-stone-700 text-sm font-medium hover:border-stone-700 hover:bg-white transition-all"
-            >
-              <ArrowLeft size={14} /> {t('browse_more_projects')}
-            </Link>
+            <div className="proj-nav-footer">
+              {prevProject ? (
+                <Link href={`/projects/${prevProject._id}`} className="proj-nav-card prev">
+                  <span className="nav-label">
+                    <ChevronLeft size={14} />
+                    {t('prev_project') || 'Previous'}
+                  </span>
+                  <span className="nav-title">{prevTitle}</span>
+                </Link>
+              ) : (
+                <div />
+              )}
+              {nextProject ? (
+                <Link href={`/projects/${nextProject._id}`} className="proj-nav-card next">
+                  <span className="nav-label">
+                    {t('next_project') || 'Next'}
+                    <ChevronRight size={14} />
+                  </span>
+                  <span className="nav-title">{nextTitle}</span>
+                </Link>
+              ) : (
+                <div />
+              )}
+            </div>
           </footer>
         </main>
       </FadeIn>

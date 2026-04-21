@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Github, Linkedin, Mail } from 'lucide-react';
+import { Github, Linkedin, Mail, Download } from 'lucide-react';
 import FadeIn from '@/components/FadeIn';
 import ActivitiesCarousel from '@/components/ActivitiesCarousel';
 import ProjectsCarousel from '@/components/ProjectsCarousel';
@@ -36,9 +36,9 @@ export default function HomeClient({ profile, experiences, projects, activities,
           <div className="flex items-center gap-4 md:gap-6">
             <div className="hidden sm:flex items-center gap-5 pr-5 border-r border-stone-200">
               <a href="#about" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors">{t('nav_about')}</a>
-              <a href="#experience" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors">{t('nav_experience')}</a>
               <a href="#projects" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors">{t('nav_projects')}</a>
               <a href="#activities" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors">{t('nav_activities')}</a>
+              <a href="#experience" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors">{t('nav_experience')}</a>
               <a href="#contact" className="text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors">{t('nav_contact')}</a>
             </div>
 
@@ -72,11 +72,11 @@ export default function HomeClient({ profile, experiences, projects, activities,
 
         {/* Mobile nav */}
         <div className="sm:hidden flex border-t border-stone-200/60">
-          <a href="#experience" className="flex-1 text-center py-2.5 text-[12px] font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-50 transition-colors">{t('nav_experience')}</a>
-          <div className="w-px bg-stone-200/60" />
           <a href="#projects" className="flex-1 text-center py-2.5 text-[12px] font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-50 transition-colors">{t('nav_projects')}</a>
           <div className="w-px bg-stone-200/60" />
           <a href="#activities" className="flex-1 text-center py-2.5 text-[12px] font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-50 transition-colors">{t('nav_activities')}</a>
+          <div className="w-px bg-stone-200/60" />
+          <a href="#experience" className="flex-1 text-center py-2.5 text-[12px] font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-50 transition-colors">{t('nav_experience')}</a>
           <div className="w-px bg-stone-200/60" />
           <a href="#contact" className="flex-1 text-center py-2.5 text-[12px] font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-50 transition-colors">{t('nav_contact')}</a>
         </div>
@@ -112,12 +112,16 @@ export default function HomeClient({ profile, experiences, projects, activities,
                     {t('hero_view_work')}
                     <span className="opacity-50">↓</span>
                   </a>
-                  {profile.email && (
+                  {profile.resumeLink && (
                     <a
-                      href="#contact"
-                      className="inline-flex items-center px-5 md:px-6 py-2.5 md:py-3 rounded-full border border-stone-300 text-stone-700 text-sm font-medium hover:border-stone-700 hover:bg-white transition-all hover:-translate-y-0.5"
+                      href={profile.resumeLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      download="Resume.pdf"
+                      className="inline-flex items-center gap-2 px-5 md:px-6 py-2.5 md:py-3 rounded-full border border-stone-300 text-stone-700 text-sm font-medium hover:border-stone-700 hover:bg-white transition-all hover:-translate-y-0.5"
                     >
-                      {t('hero_get_in_touch')}
+                      <Download size={14} />
+                      {t('nav_resume')}
                     </a>
                   )}
                 </div>
@@ -135,11 +139,6 @@ export default function HomeClient({ profile, experiences, projects, activities,
                   <div className="absolute inset-0 rounded-3xl border border-stone-200/50 pointer-events-none transition-all duration-500 md:rotate-3 md:group-hover:rotate-0" />
                 </div>
               )}
-            </div>
-
-            <div className="mt-12 md:mt-16 flex items-center gap-3 text-stone-400">
-              <div className="w-px h-8 md:h-10 bg-stone-300" />
-              <span className="text-[10px] md:text-[11px] font-medium tracking-[0.2em] uppercase">{t('hero_scroll')}</span>
             </div>
           </section>
         </FadeIn>
@@ -160,12 +159,58 @@ export default function HomeClient({ profile, experiences, projects, activities,
           </FadeIn>
         )}
 
+        {/* ─── Projects ─── */}
+        {projects.length > 0 && (
+          <FadeIn direction="up" delay={0.2}>
+            <section id="projects" className="py-16 md:py-28">
+              <div className="flex items-center justify-between mb-10 md:mb-16">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <span className="text-[10px] md:text-[11px] font-semibold tracking-[0.25em] uppercase text-stone-400">02</span>
+                  <div className="w-8 md:w-12 h-px bg-stone-300" />
+                  <h2 className="text-[12px] md:text-[13px] font-semibold tracking-[0.15em] uppercase text-stone-500">{t('section_projects')}</h2>
+                </div>
+                <Link
+                  href="/projects"
+                  className="text-[12px] md:text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors inline-flex items-center gap-1.5"
+                >
+                  {t('view_all')} <span>→</span>
+                </Link>
+              </div>
+
+              <ProjectsCarousel projects={projects} />
+            </section>
+          </FadeIn>
+        )}
+
+        {/* ─── Activities ─── */}
+        {activities.length > 0 && (
+          <FadeIn direction="up" delay={0.3}>
+            <section id="activities" className="py-16 md:py-28">
+              <div className="flex items-center justify-between mb-10 md:mb-16">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <span className="text-[10px] md:text-[11px] font-semibold tracking-[0.25em] uppercase text-stone-400">03</span>
+                  <div className="w-8 md:w-12 h-px bg-stone-300" />
+                  <h2 className="text-[12px] md:text-[13px] font-semibold tracking-[0.15em] uppercase text-stone-500">{t('section_activities')}</h2>
+                </div>
+                <Link
+                  href="/activities"
+                  className="text-[12px] md:text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors inline-flex items-center gap-1.5"
+                >
+                  {t('view_all')} <span>→</span>
+                </Link>
+              </div>
+
+              <ActivitiesCarousel activities={activities} />
+            </section>
+          </FadeIn>
+        )}
+
         {/* ─── Experience ─── */}
         {experiences.length > 0 && (
-          <FadeIn direction="up" delay={0.2}>
+          <FadeIn direction="up" delay={0.4}>
             <section id="experience" className="py-16 md:py-28">
               <div className="flex items-center gap-3 md:gap-4 mb-10 md:mb-16">
-                <span className="text-[10px] md:text-[11px] font-semibold tracking-[0.25em] uppercase text-stone-400">02</span>
+                <span className="text-[10px] md:text-[11px] font-semibold tracking-[0.25em] uppercase text-stone-400">04</span>
                 <div className="w-8 md:w-12 h-px bg-stone-300" />
                 <h2 className="text-[12px] md:text-[13px] font-semibold tracking-[0.15em] uppercase text-stone-500">{t('section_experience')}</h2>
               </div>
@@ -210,52 +255,6 @@ export default function HomeClient({ profile, experiences, projects, activities,
                   );
                 })}
               </div>
-            </section>
-          </FadeIn>
-        )}
-
-        {/* ─── Projects ─── */}
-        {projects.length > 0 && (
-          <FadeIn direction="up" delay={0.3}>
-            <section id="projects" className="py-16 md:py-28">
-              <div className="flex items-center justify-between mb-10 md:mb-16">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <span className="text-[10px] md:text-[11px] font-semibold tracking-[0.25em] uppercase text-stone-400">03</span>
-                  <div className="w-8 md:w-12 h-px bg-stone-300" />
-                  <h2 className="text-[12px] md:text-[13px] font-semibold tracking-[0.15em] uppercase text-stone-500">{t('section_projects')}</h2>
-                </div>
-                <Link
-                  href="/projects"
-                  className="text-[12px] md:text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors inline-flex items-center gap-1.5"
-                >
-                  {t('view_all')} <span>→</span>
-                </Link>
-              </div>
-
-              <ProjectsCarousel projects={projects} />
-            </section>
-          </FadeIn>
-        )}
-
-        {/* ─── Activities ─── */}
-        {activities.length > 0 && (
-          <FadeIn direction="up" delay={0.4}>
-            <section id="activities" className="py-16 md:py-28">
-              <div className="flex items-center justify-between mb-10 md:mb-16">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <span className="text-[10px] md:text-[11px] font-semibold tracking-[0.25em] uppercase text-stone-400">04</span>
-                  <div className="w-8 md:w-12 h-px bg-stone-300" />
-                  <h2 className="text-[12px] md:text-[13px] font-semibold tracking-[0.15em] uppercase text-stone-500">{t('section_activities')}</h2>
-                </div>
-                <Link
-                  href="/activities"
-                  className="text-[12px] md:text-[13px] font-medium text-stone-500 hover:text-stone-900 transition-colors inline-flex items-center gap-1.5"
-                >
-                  {t('view_all')} <span>→</span>
-                </Link>
-              </div>
-
-              <ActivitiesCarousel activities={activities} />
             </section>
           </FadeIn>
         )}

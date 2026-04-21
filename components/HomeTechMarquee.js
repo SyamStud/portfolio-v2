@@ -18,7 +18,6 @@ const getCleanUrl = (url) => {
 export default function HomeTechMarquee({ techs }) {
   if (!techs || techs.length === 0) return null;
 
-  // Both rows use ALL techs — row 2 is reversed for visual variety
   const row1 = techs;
   const row2 = [...techs].reverse();
 
@@ -29,32 +28,35 @@ export default function HomeTechMarquee({ techs }) {
           position: relative;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 32px;
           padding: 10px 0;
+        }
+        /* Prevent child transitions from interfering with marquee transform */
+        .htm-marquee-container .rfm-marquee-container {
+          will-change: transform;
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
         }
         .htm-tech {
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 12px;
-          padding: 8px 20px 8px 8px;
-          margin: 0 12px;
-          background: white;
-          border: 1px solid #e7e5e4;
-          border-radius: 15px;
+          justify-content: center;
+          gap: 10px;
+          margin: 0 28px;
           flex-shrink: 0;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-          transition: all 0.25s ease;
           cursor: default;
+          /* Remove transition on the item itself to prevent jank */
         }
-        .htm-tech:hover {
-          border-color: #d6d3d1;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-          transform: translateY(-2px);
+        .htm-tech:hover .htm-icon img {
+          transform: scale(1.12);
+        }
+        .htm-tech:hover .htm-label {
+          color: #44403c;
         }
         .htm-icon {
-          width: 38px;
-          height: 38px;
-          border-radius: 0;
+          width: 52px;
+          height: 52px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -62,30 +64,49 @@ export default function HomeTechMarquee({ techs }) {
           flex-shrink: 0;
         }
         .htm-icon img {
-          width: 20px;
-          height: 20px;
+          width: 48px;
+          height: 48px;
           object-fit: contain;
+          transition: transform 0.3s ease;
+          /* Hardware acceleration for smooth rendering */
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+          transform: translateZ(0);
         }
         .htm-label {
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 500;
-          color: #44403c;
+          color: #78716c;
           white-space: nowrap;
+          text-align: center;
+          transition: color 0.3s ease;
+        }
+        .htm-fallback {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #e7e5e4, #d6d3d1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #78716c;
+          font-size: 20px;
+          font-weight: 700;
         }
       `}</style>
 
       <div className="htm-marquee-container">
         {/* Row 1 → scrolls left */}
-        <Marquee speed={40} gradient={true} gradientColor="#FAFAF8" gradientWidth={80} pauseOnHover={true}>
+        <Marquee speed={30} gradient={true} gradientColor="#FAFAF8" gradientWidth={100} pauseOnHover={false}>
           {row1.map((tech, i) => (
             <div key={`r1-${i}`} className="htm-tech">
               <div className="htm-icon">
                 {tech.logo ? (
-                  <img src={getCleanUrl(tech.logo)} alt={tech.name} />
+                  <img src={getCleanUrl(tech.logo)} alt={tech.name} loading="lazy" />
                 ) : (
-                  <span style={{ color: '#a8a29e', fontSize: 16, fontWeight: 700 }}>
+                  <div className="htm-fallback">
                     {tech.name.charAt(0)}
-                  </span>
+                  </div>
                 )}
               </div>
               <span className="htm-label">{tech.name}</span>
@@ -94,16 +115,16 @@ export default function HomeTechMarquee({ techs }) {
         </Marquee>
 
         {/* Row 2 → scrolls right (opposite direction) */}
-        <Marquee speed={35} gradient={true} gradientColor="#FAFAF8" gradientWidth={80} pauseOnHover={true} direction="right">
+        <Marquee speed={25} gradient={true} gradientColor="#FAFAF8" gradientWidth={100} pauseOnHover={false} direction="right">
           {row2.map((tech, i) => (
             <div key={`r2-${i}`} className="htm-tech">
               <div className="htm-icon">
                 {tech.logo ? (
-                  <img src={getCleanUrl(tech.logo)} alt={tech.name} />
+                  <img src={getCleanUrl(tech.logo)} alt={tech.name} loading="lazy" />
                 ) : (
-                  <span style={{ color: '#a8a29e', fontSize: 16, fontWeight: 700 }}>
+                  <div className="htm-fallback">
                     {tech.name.charAt(0)}
-                  </span>
+                  </div>
                 )}
               </div>
               <span className="htm-label">{tech.name}</span>

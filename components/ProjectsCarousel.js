@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Github, ExternalLink, Youtube } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { getLocalized } from '@/lib/localize';
 
@@ -251,6 +251,34 @@ export default function ProjectsCarousel({ projects }) {
           width: 22px;
           background: #292524;
         }
+        .proj-links-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .proj-link-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
+          background: #f5f5f4;
+          border: 1px solid #e7e5e4;
+          color: #57534e;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+        .proj-link-icon:hover {
+          background: #1c1917;
+          border-color: #1c1917;
+          color: white;
+        }
+        .proj-link-icon.yt:hover {
+          background: #dc2626;
+          border-color: #dc2626;
+        }
       `}</style>
 
       <div
@@ -284,13 +312,47 @@ export default function ProjectsCarousel({ projects }) {
                         <span className="flex-shrink-0 ml-3 mt-0.5 text-stone-300 text-lg">↗</span>
                       </div>
                       <p className="text-stone-500 text-sm leading-relaxed flex-grow mb-3">{truncateDesc(getLocalized(proj.description, language))}</p>
-                      {proj.proprietary && (
-                        <div className="mb-3 mt-auto">
+                      {/* Links & Proprietary row */}
+                      <div className="proj-links-row mb-3 mt-auto">
+                        {proj.proprietary && (
                           <span className="inline-flex items-center text-[10px] font-semibold tracking-wider uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                             {t('proprietary')}
                           </span>
-                        </div>
-                      )}
+                        )}
+                        {proj.repoUrl && (
+                          <span
+                            className="proj-link-icon"
+                            title="GitHub"
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(proj.repoUrl, '_blank'); }}
+                          >
+                            <Github size={14} />
+                          </span>
+                        )}
+                        {proj.youtubeUrl && (
+                          <span
+                            className="proj-link-icon yt"
+                            title="YouTube"
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(proj.youtubeUrl, '_blank'); }}
+                          >
+                            <Youtube size={14} />
+                          </span>
+                        )}
+                        {proj.demoUrl && (
+                          <span
+                            className="proj-link-icon"
+                            title="Live Demo"
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(proj.demoUrl, '_blank'); }}
+                          >
+                            <ExternalLink size={14} />
+                          </span>
+                        )}
+                      </div>
                       <div className={proj.proprietary ? "pt-4 border-t border-stone-100" : "mt-auto pt-4 border-t border-stone-100"}>
                         {proj.techStack && proj.techStack.length > 0 ? (
                           <div className="flex items-center gap-2 overflow-hidden flex-wrap">

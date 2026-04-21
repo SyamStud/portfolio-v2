@@ -6,8 +6,8 @@ import { LanguageProvider } from "@/components/LanguageContext";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata = {
-  title: "Creative Portfolio",
-  description: "A modern, minimal portfolio.",
+  title: "Syam Chaidayatullah",
+  description: "Syam's Portfolio",
 };
 
 export default async function RootLayout({ children }) {

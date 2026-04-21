@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Star, ArrowRight } from 'lucide-react';
+import { ArrowRight, Star } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { getLocalized } from '@/lib/localize';
 
@@ -12,17 +12,31 @@ export default function ActivitiesCarousel({ activities }) {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const intervalRef = useRef(null);
 
   const total = activities.length;
 
   const goTo = useCallback((index) => {
+    if (isAnimating || index === activeIndex) return;
+    setIsAnimating(true);
     setActiveIndex(index);
-  }, []);
+    setTimeout(() => setIsAnimating(false), 500);
+  }, [activeIndex, isAnimating]);
 
   const next = useCallback(() => {
+    if (isAnimating) return;
+    setIsAnimating(true);
     setActiveIndex((prev) => (prev + 1) % total);
-  }, [total]);
+    setTimeout(() => setIsAnimating(false), 500);
+  }, [total, isAnimating]);
+
+  const prev = useCallback(() => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setActiveIndex((prev) => (prev - 1 + total) % total);
+    setTimeout(() => setIsAnimating(false), 500);
+  }, [total, isAnimating]);
 
   // Auto-scroll every 5s
   useEffect(() => {
@@ -40,84 +54,140 @@ export default function ActivitiesCarousel({ activities }) {
     day: 'numeric',
   });
 
+  const dateUpperStr = new Date(current.date).toLocaleDateString(dateLocale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).toUpperCase();
+
   const postOfText = t('post_of', { current: activeIndex + 1, total });
+
+  // Calculate card positions — stacking deck effect
+  const getCardStyle = (index) => {
+    let diff = index - activeIndex;
+    // Wrap around for circular navigation
+    if (diff > total / 2) diff -= total;
+    if (diff < -total / 2) diff += total;
+
+    const isActive = diff === 0;
+    const absOffset = Math.abs(diff);
+
+    if (absOffset > 2) {
+      return {
+        transform: `translateX(${diff < 0 ? '-40' : '40'}%) scale(0.7)`,
+        opacity: 0,
+        zIndex: 0,
+        filter: 'grayscale(100%) brightness(0.5)',
+        pointerEvents: 'none',
+      };
+    }
+
+    // Active card
+    if (isActive) {
+      return {
+        transform: 'translateX(0%) scale(1)',
+        opacity: 1,
+        zIndex: 10,
+        filter: 'none',
+        pointerEvents: 'auto',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      };
+    }
+
+    // Cards behind — offset left/right, scaled down, grayscale
+    const translateX = diff * 15; // percentage offset per position
+    const scale = 1 - absOffset * 0.1;
+    const opacity = 1 - absOffset * 0.25;
+
+    return {
+      transform: `translateX(${translateX}%) scale(${scale})`,
+      opacity: Math.max(opacity, 0.3),
+      zIndex: 10 - absOffset,
+      filter: `grayscale(80%) brightness(0.6)`,
+      pointerEvents: absOffset === 1 ? 'auto' : 'none',
+      cursor: absOffset === 1 ? 'pointer' : 'default',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    };
+  };
 
   return (
     <>
       <style>{`
-        .act-container {
+        .act-wrapper {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 16px;
+          gap: 20px;
+          align-items: stretch;
         }
         @media (min-width: 768px) {
-          .act-container {
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+          .act-wrapper {
+            grid-template-columns: 1.15fr 1fr;
+            gap: 28px;
           }
         }
 
-        /* ── Image Card ── */
-        .act-image-card {
+        /* ── Stacking Slider ── */
+        .act-stack-slider {
           position: relative;
-          border-radius: 16px;
-          overflow: hidden;
-          background: #1c1917;
-          aspect-ratio: 4/3;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+          height: 220px;
+          overflow: visible;
         }
         @media (min-width: 768px) {
-          .act-image-card {
-            aspect-ratio: auto;
-            min-height: 340px;
+          .act-stack-slider {
+            height: 300px;
           }
         }
-        .act-image-card img {
+
+        .act-card {
+          position: absolute;
+          top: 0;
+          left: 12.5%;
+          width: 75%;
+          height: 100%;
+          border-radius: 14px;
+          overflow: hidden;
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform, opacity, filter;
+        }
+
+        .act-card img {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          position: absolute;
-          inset: 0;
-          opacity: 0;
-          transition: opacity 0.5s ease;
+          display: block;
         }
-        .act-image-card img.active {
-          opacity: 1;
-        }
-        .act-image-card::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 50%;
-          background: linear-gradient(transparent, rgba(0,0,0,0.75));
-          z-index: 1;
-          pointer-events: none;
-        }
-        .act-img-info {
+
+        /* Overlay at bottom of active card */
+        .act-card-overlay {
           position: absolute;
           bottom: 0;
           left: 0;
           right: 0;
           padding: 20px 24px;
+          background: linear-gradient(transparent 0%, rgba(0,0,0,0.75) 100%);
           z-index: 2;
+          pointer-events: none;
         }
-        .act-img-title {
+
+        .act-card-title {
           color: white;
           font-size: 15px;
           font-weight: 600;
           margin: 0 0 3px;
           line-height: 1.3;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
-        .act-img-date {
-          color: rgba(255,255,255,0.6);
+
+        .act-card-date {
+          color: rgba(255,255,255,0.65);
           font-size: 12px;
         }
-        .act-star {
+
+        /* Featured star badge */
+        .act-star-badge {
           position: absolute;
-          top: 14px;
-          right: 14px;
+          top: 12px;
+          right: 12px;
           width: 30px;
           height: 30px;
           border-radius: 50%;
@@ -130,8 +200,8 @@ export default function ActivitiesCarousel({ activities }) {
         }
 
         /* ── Detail Card ── */
-        .act-detail-card {
-          border-radius: 16px;
+        .act-detail {
+          border-radius: 18px;
           border: 1px solid #e7e5e4;
           padding: 28px 28px 24px;
           display: flex;
@@ -139,17 +209,34 @@ export default function ActivitiesCarousel({ activities }) {
           justify-content: center;
           position: relative;
           overflow: hidden;
-          background: #f8f8f6;
+          background: #fafaf9;
+          height: 220px;
         }
         @media (min-width: 768px) {
-          .act-detail-card {
-            padding: 36px 40px 32px;
+          .act-detail {
+            padding: 30px 36px 28px;
+            height: 300px;
           }
         }
 
-        .act-type-badge {
+        .act-detail-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 16px;
+        }
+
+        .act-detail-date-text {
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: #78716c;
+        }
+
+        .act-badge {
           display: inline-flex;
-          padding: 4px 12px;
+          padding: 4px 14px;
           border-radius: 8px;
           font-size: 10px;
           font-weight: 700;
@@ -158,13 +245,83 @@ export default function ActivitiesCarousel({ activities }) {
           background: #1e3a5f;
           color: white;
         }
-        .act-dots-row {
+
+        .act-detail-title {
+          font-size: 20px;
+          font-weight: 700;
+          color: #1c1917;
+          line-height: 1.3;
+          margin-bottom: 16px;
+          letter-spacing: -0.02em;
+        }
+        @media (min-width: 768px) {
+          .act-detail-title {
+            font-size: 24px;
+          }
+        }
+
+        .act-detail-desc {
+          color: #78716c;
+          font-size: 14px;
+          line-height: 1.6;
+          flex-grow: 1;
+          text-align: justify;
+          margin-bottom: 16px;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        @media (min-width: 768px) {
+          .act-detail-desc {
+            font-size: 15px;
+            -webkit-line-clamp: 4;
+          }
+        }
+
+        .act-detail-footer {
           display: flex;
           align-items: center;
-          gap: 8px;
-          margin-top: 20px;
+          justify-content: space-between;
+          padding-top: 16px;
+          border-top: 1px solid #e7e5e4;
         }
-        .act-dot {
+
+        .act-counter {
+          font-size: 13px;
+          color: #a8a29e;
+        }
+
+        .act-read-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 700;
+          color: #1c1917;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+        .act-read-link:hover {
+          gap: 10px;
+        }
+
+        /* ── Dots ── */
+        .act-dots {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          margin-top: 16px;
+          grid-column: 1 / -1;
+        }
+        @media (min-width: 768px) {
+          .act-dots {
+            grid-column: 1 / 2;
+            margin-top: 12px;
+          }
+        }
+        .act-dot-btn {
           width: 8px;
           height: 8px;
           border-radius: 50%;
@@ -172,84 +329,124 @@ export default function ActivitiesCarousel({ activities }) {
           border: none;
           padding: 0;
           cursor: pointer;
-          transition: all 0.25s ease;
+          transition: all 0.3s ease;
         }
-        .act-dot.active {
+        .act-dot-btn.active {
           background: #1e3a5f;
-          width: 24px;
-          border-radius: 12px;
+          width: 22px;
+          border-radius: 10px;
+        }
+
+        /* Animate detail content on change */
+        .act-detail-content {
+          animation: actDetailSlideIn 0.4s ease-out;
+        }
+        @keyframes actDetailSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
       `}</style>
 
       <div
-        className="act-container"
+        className="act-wrapper"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        {/* Image Card */}
-        <div className="act-image-card">
-          {activities.map((act, i) => (
-            <img
-              key={act._id}
-              src={act.image || '/placeholder.jpg'}
-              alt={getLocalized(act.title, language)}
-              className={i === activeIndex ? 'active' : ''}
-            />
-          ))}
-          <div className="act-img-info">
-            <div className="act-img-title">{getLocalized(current.title, language)}</div>
-            <div className="act-img-date">{dateStr}</div>
-          </div>
-          {current.featured && (
-            <div className="act-star">
-              <Star size={13} fill="white" color="white" />
-            </div>
-          )}
-        </div>
+        {/* Stacking card slider */}
+        <div className="act-stack-slider">
+          {activities.map((act, i) => {
+            const style = getCardStyle(i);
+            const isActive = i === activeIndex;
+            const diff = (() => {
+              let d = i - activeIndex;
+              if (d > total / 2) d -= total;
+              if (d < -total / 2) d += total;
+              return d;
+            })();
 
-        {/* Detail Card */}
-        <div className="act-detail-card">
-          <div className="flex items-center gap-3 mb-5" style={{ position: 'relative', zIndex: 1 }}>
-            <span className="text-[11px] font-semibold tracking-wider uppercase text-amber-600">
-              {dateStr.toUpperCase()}
-            </span>
-            <span className="act-type-badge">{current.type}</span>
-          </div>
-
-          <h3 className="text-xl md:text-2xl font-bold text-stone-900 tracking-[-0.02em] mb-4 leading-snug" style={{ position: 'relative', zIndex: 1 }}>
-            {getLocalized(current.title, language)}
-          </h3>
-
-          <p className="text-stone-500 text-[14px] md:text-[15px] leading-relaxed mb-6 flex-grow" style={{ textAlign: 'justify', position: 'relative', zIndex: 1 }}>
-            {getLocalized(current.description, language)}
-          </p>
-
-          <div className="flex items-center justify-between mt-auto" style={{ position: 'relative', zIndex: 1 }}>
-            <span className="text-[13px] text-stone-400">
-              {postOfText}
-            </span>
-            <Link
-              href={`/activities/${current._id}`}
-              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-stone-800 hover:text-stone-900 transition-colors"
-            >
-              {t('read_full_post')} <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          {/* Dots */}
-          {total > 1 && (
-            <div className="act-dots-row" style={{ position: 'relative', zIndex: 1 }}>
-              {activities.map((_, i) => (
-                <button
-                  key={i}
-                  className={`act-dot${i === activeIndex ? ' active' : ''}`}
-                  onClick={() => goTo(i)}
-                  aria-label={`Go to activity ${i + 1}`}
+            return (
+              <div
+                key={act._id}
+                className="act-card"
+                style={style}
+                onClick={() => {
+                  if (diff === -1) prev();
+                  else if (diff === 1) next();
+                }}
+              >
+                <img
+                  src={act.image || '/placeholder.jpg'}
+                  alt={getLocalized(act.title, language)}
                 />
-              ))}
-            </div>
-          )}
+                {/* Only show overlay on the active card */}
+                {isActive && (
+                  <div className="act-card-overlay">
+                    <div className="act-card-title">
+                      {getLocalized(act.title, language)}
+                    </div>
+                    <div className="act-card-date">
+                      {new Date(act.date).toLocaleDateString(dateLocale, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </div>
+                  </div>
+                )}
+                {isActive && act.featured && (
+                  <div className="act-star-badge">
+                    <Star size={13} fill="white" color="white" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
+
+        {/* Detail card */}
+        <div className="act-detail">
+          <div className="act-detail-content" key={activeIndex}>
+            <div className="act-detail-header">
+              <span className="act-detail-date-text">{dateUpperStr}</span>
+              <span className="act-badge">{current.type}</span>
+            </div>
+
+            <h3 className="act-detail-title">
+              {getLocalized(current.title, language)}
+            </h3>
+
+            <p className="act-detail-desc">
+              {getLocalized(current.description, language)}
+            </p>
+
+            <div className="act-detail-footer">
+              <span className="act-counter">{postOfText}</span>
+              <Link href={`/activities/${current._id}`} className="act-read-link">
+                {t('read_full_post')} <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Dots */}
+        {total > 1 && (
+          <div className="act-dots">
+            {activities.map((_, i) => (
+              <button
+                key={i}
+                className={`act-dot-btn${i === activeIndex ? ' active' : ''}`}
+                onClick={() => goTo(i)}
+                aria-label={`Go to activity ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </>
   );

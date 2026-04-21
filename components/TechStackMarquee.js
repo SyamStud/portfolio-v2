@@ -15,33 +15,61 @@ const getCleanUrl = (url) => {
   return url;
 };
 
+const THRESHOLD = 8; // If <= this many techs, show static grid instead of marquee
+
 export default function TechStackMarquee({ techStack }) {
   if (!techStack || techStack.length === 0) return null;
+
+  const useMarquee = techStack.length > THRESHOLD;
+
+  const renderItem = (tech, i, prefix = '') => (
+    <div key={`${prefix}${tech.name}-${i}`} className="ts-item">
+      {tech.logo && <img src={getCleanUrl(tech.logo)} alt={tech.name} loading="lazy" />}
+      <span>{tech.name}</span>
+    </div>
+  );
 
   return (
     <>
       <style>{`
+        .ts-section {
+          padding: 20px 0;
+        }
+        .ts-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .ts-header-line {
+          width: 24px;
+          height: 1px;
+          background: #d6d3d1;
+        }
+        .ts-header-text {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #a8a29e;
+        }
         .ts-item {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 10px 18px;
-          margin: 0 8px;
+          padding: 8px 16px;
+          margin: 0 6px;
           background: white;
           border: 1px solid #e7e5e4;
-          border-radius: 12px;
+          border-radius: 10px;
           white-space: nowrap;
-          transition: all 0.2s ease;
           flex-shrink: 0;
-        }
-        .ts-item:hover {
-          border-color: #d6d3d1;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-          transform: translateY(-1px);
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
         }
         .ts-item img {
-          width: 24px;
-          height: 24px;
+          width: 20px;
+          height: 20px;
           object-fit: contain;
           flex-shrink: 0;
         }
@@ -50,21 +78,32 @@ export default function TechStackMarquee({ techStack }) {
           font-weight: 500;
           color: #44403c;
         }
+        /* Static grid when few items */
+        .ts-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .ts-grid .ts-item {
+          margin: 0;
+        }
       `}</style>
 
-      <section className="py-8">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-6 h-px bg-stone-300" />
-          <h3 className="text-[11px] font-semibold tracking-[0.2em] uppercase text-stone-400">Tech Stack</h3>
+      <section className="ts-section">
+        <div className="ts-header">
+          <div className="ts-header-line" />
+          <h3 className="ts-header-text">Tech Stack</h3>
         </div>
-        <Marquee speed={30} gradient={true} gradientColor="#FAFAF8" gradientWidth={40} pauseOnHover={true}>
-          {techStack.map((tech, i) => (
-            <div key={`${tech.name}-${i}`} className="ts-item">
-              {tech.logo && <img src={getCleanUrl(tech.logo)} alt={tech.name} />}
-              <span>{tech.name}</span>
-            </div>
-          ))}
-        </Marquee>
+
+        {useMarquee ? (
+          <Marquee speed={25} gradient={true} gradientColor="#FAFAF8" gradientWidth={40} pauseOnHover={false}>
+            {techStack.map((tech, i) => renderItem(tech, i, 'mq-'))}
+          </Marquee>
+        ) : (
+          <div className="ts-grid">
+            {techStack.map((tech, i) => renderItem(tech, i, 'st-'))}
+          </div>
+        )}
       </section>
     </>
   );

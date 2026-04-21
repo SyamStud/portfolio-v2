@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function ImageGallery({ images = [], title, youtubeUrl, videoUrl }) {
-    const [activeIndex, setActiveIndex] = useState(0);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -34,10 +33,6 @@ export default function ImageGallery({ images = [], title, youtubeUrl, videoUrl 
         media.push({ type: 'image', src: img, thumb: img });
     });
 
-    const MAX_THUMBS = 6;
-    const visibleThumbs = media.slice(0, MAX_THUMBS);
-    const extraCount = media.length - MAX_THUMBS;
-
     // Keyboard for lightbox
     const handleKeyDown = useCallback(
         (e) => {
@@ -59,76 +54,114 @@ export default function ImageGallery({ images = [], title, youtubeUrl, videoUrl 
         setLightboxOpen(true);
     };
 
-    const prev = () => setActiveIndex((p) => (p - 1 + media.length) % media.length);
-    const next = () => setActiveIndex((p) => (p + 1) % media.length);
-
     if (media.length === 0) return null;
+
+    // For the grid layout: main image (index 0), second image (index 1), remaining count
+    const mainMedia = media[0];
+    const secondMedia = media.length > 1 ? media[1] : null;
+    const remainingCount = media.length - 2; // How many beyond the 2 shown on right
+
+    const renderMediaItem = (item, index, className = '') => {
+        if (item.type === 'image') {
+            return (
+                <img
+                    src={item.src}
+                    alt={`${title} view ${index + 1}`}
+                    className={className}
+                    onClick={() => openLightbox(index)}
+                    style={{ cursor: 'zoom-in' }}
+                />
+            );
+        } else if (item.type === 'youtube') {
+            return (
+                <div className={`ig-video-wrapper ${className}`} onClick={() => openLightbox(index)}>
+                    <img src={item.thumb} alt={`${title} video`} />
+                    <div className="ig-play-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                </div>
+            );
+        } else {
+            return (
+                <div className={`ig-video-wrapper ${className}`} onClick={() => openLightbox(index)}>
+                    <video src={item.src} className="w-full h-full object-cover" />
+                    <div className="ig-play-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                </div>
+            );
+        }
+    };
 
     return (
         <>
             <style>{galleryStyles}</style>
             <section className="py-8">
-                {/* Main Media - 16:9 */}
-                <div className="ig-main" onClick={() => media[activeIndex].type === 'image' && openLightbox(activeIndex)}>
-                    {media[activeIndex].type === 'image' ? (
-                        <img src={media[activeIndex].src} alt={`${title} view ${activeIndex + 1}`} />
-                    ) : media[activeIndex].type === 'youtube' ? (
-                        <iframe
-                            className="w-full h-full"
-                            style={{ aspectRatio: '16/9' }}
-                            src={media[activeIndex].src}
-                            title="YouTube video player"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                        />
-                    ) : (
-                        <video src={media[activeIndex].src} controls className="w-full h-full outline-none" style={{ aspectRatio: '16/9' }} />
-                    )}
-                </div>
+                {media.length === 1 ? (
+                    /* Single image — full width */
+                    <div className="ig-single">
+                        {renderMediaItem(mainMedia, 0, 'ig-single-img')}
+                    </div>
+                ) : (
+                    /* Grid: big left, 2 stacked right */
+                    <div className="ig-grid">
+                        {/* Left — main large image */}
+                        <div className="ig-grid-main">
+                            {renderMediaItem(mainMedia, 0, 'ig-grid-main-img')}
+                        </div>
 
-                {/* Controls */}
-                {media.length > 1 && (
-                    <div className="flex items-center justify-center gap-4 mt-4">
-                        <button className="ig-arrow" onClick={prev} aria-label="Previous media">
-                            <ChevronLeft size={16} />
-                        </button>
-                        <span className="text-[12px] text-stone-400 font-medium tabular-nums">
-                            {activeIndex + 1} / {media.length}
-                        </span>
-                        <button className="ig-arrow" onClick={next} aria-label="Next media">
-                            <ChevronRight size={16} />
-                        </button>
+                        {/* Right — 2 stacked */}
+                        <div className="ig-grid-right">
+                            {secondMedia && (
+                                <div className="ig-grid-top">
+                                    {renderMediaItem(secondMedia, 1, 'ig-grid-small-img')}
+                                </div>
+                            )}
+                            <div
+                                className="ig-grid-bottom"
+                                onClick={() => openLightbox(media.length > 2 ? 2 : 1)}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                {media.length > 2 ? (
+                                    <>
+                                        <img
+                                            src={media[2].thumb}
+                                            alt={`${title} more`}
+                                            className="ig-grid-small-img"
+                                        />
+                                        {remainingCount > 0 && (
+                                            <div className="ig-grid-overlay">
+                                                <span>+{remainingCount}</span>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    /* Only 2 images — show second again with zoom hint */
+                                    <>
+                                        <img
+                                            src={secondMedia?.thumb || mainMedia.thumb || mainMedia.src}
+                                            alt={`${title} view`}
+                                            className="ig-grid-small-img"
+                                            style={{ filter: 'brightness(0.7)' }}
+                                        />
+                                        <div className="ig-grid-overlay">
+                                            <span style={{ fontSize: 14 }}>View All</span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
 
-                {/* Thumbnails - single row, max 6 */}
+                {/* Nav arrows below grid */}
                 {media.length > 1 && (
-                    <div className="ig-thumbs">
-                        {visibleThumbs.map((item, i) => {
-                            const isLast = i === MAX_THUMBS - 1 && extraCount > 0;
-                            return (
-                                <div
-                                    key={i}
-                                    className={`ig-thumb${i === activeIndex ? ' active' : ''}`}
-                                    onClick={() => isLast ? openLightbox(MAX_THUMBS - 1) : setActiveIndex(i)}
-                                >
-                                    <img src={item.thumb} alt={`${title} thumb ${i + 1}`} />
-                                    {item.type !== 'image' && (
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white backdrop-blur-sm">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 5v14l11-7z"/></svg>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {isLast && (
-                                        <div className="ig-thumb-extra">
-                                            <span>+{extraCount}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                    <div className="flex items-center justify-center gap-4 mt-4">
+                        <button className="ig-arrow" onClick={() => openLightbox(0)} aria-label="View gallery">
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#57534e' }}>
+                                {media.length} photos
+                            </span>
+                        </button>
                     </div>
                 )}
             </section>
@@ -195,85 +228,152 @@ export default function ImageGallery({ images = [], title, youtubeUrl, videoUrl 
 }
 
 const galleryStyles = `
-  .ig-main {
+  /* ── Single Image ── */
+  .ig-single {
     border-radius: 16px;
     overflow: hidden;
-    cursor: zoom-in;
     background: #e7e5e4;
   }
-  .ig-main img {
+  .ig-single-img {
     width: 100%;
     aspect-ratio: 16/9;
     object-fit: cover;
     display: block;
     transition: transform 0.4s ease;
+    cursor: zoom-in;
   }
-  .ig-main:hover img { transform: scale(1.02); }
+  .ig-single:hover .ig-single-img { transform: scale(1.02); }
 
-  .ig-thumbs {
-    display: flex;
+  /* ── Grid Layout ── */
+  .ig-grid {
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 8px;
-    margin-top: 12px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .ig-thumbs::-webkit-scrollbar { display: none; }
-
-  .ig-thumb {
-    position: relative;
-    border-radius: 10px;
+    border-radius: 16px;
     overflow: hidden;
-    cursor: pointer;
+  }
+  @media (min-width: 640px) {
+    .ig-grid {
+      grid-template-columns: 1.6fr 1fr;
+    }
+  }
+
+  .ig-grid-main {
+    position: relative;
+    overflow: hidden;
     background: #e7e5e4;
-    border: 2px solid transparent;
-    transition: all 0.2s ease;
-    opacity: 0.6;
-    flex-shrink: 0;
-    width: calc((100% - 40px) / 6);
-    min-width: 80px;
+    border-radius: 12px;
   }
-  .ig-thumb:hover {
-    opacity: 0.9;
-  }
-  .ig-thumb.active {
-    border-color: #292524;
-    opacity: 1;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-  .ig-thumb img {
+  .ig-grid-main-img {
     width: 100%;
-    aspect-ratio: 16/10;
+    height: 100%;
+    min-height: 220px;
     object-fit: cover;
     display: block;
+    transition: transform 0.4s ease;
+    cursor: zoom-in;
   }
-  .ig-thumb-extra {
+  @media (min-width: 640px) {
+    .ig-grid-main-img {
+      min-height: 320px;
+    }
+  }
+  .ig-grid-main:hover .ig-grid-main-img { transform: scale(1.02); }
+
+  .ig-grid-right {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .ig-grid-top {
+    position: relative;
+    overflow: hidden;
+    background: #e7e5e4;
+    border-radius: 12px;
+  }
+  .ig-grid-small-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+    cursor: zoom-in;
+  }
+  .ig-grid-top:hover .ig-grid-small-img { transform: scale(1.03); }
+
+  .ig-grid-bottom {
+    position: relative;
+    overflow: hidden;
+    background: #e7e5e4;
+    border-radius: 12px;
+  }
+  .ig-grid-bottom:hover .ig-grid-small-img { transform: scale(1.03); }
+
+  .ig-grid-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0,0,0,0.45);
     display: flex;
     align-items: center;
     justify-content: center;
     backdrop-filter: blur(2px);
+    transition: background 0.2s ease;
   }
-  .ig-thumb-extra span {
+  .ig-grid-bottom:hover .ig-grid-overlay {
+    background: rgba(0,0,0,0.55);
+  }
+  .ig-grid-overlay span {
     color: white;
-    font-size: 16px;
+    font-size: 22px;
     font-weight: 700;
     letter-spacing: 0.02em;
   }
 
+  /* ── Video wrapper ── */
+  .ig-video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  .ig-video-wrapper img, .ig-video-wrapper video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .ig-play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ── Arrow ── */
   .ig-arrow {
-    width: 38px; height: 38px;
+    padding: 8px 16px;
     border-radius: 9999px;
     background: white;
     border: 1px solid #e7e5e4;
-    color: #44403c;
-    display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-  .ig-arrow:hover { background: #f5f5f4; border-color: #d6d3d1; color: #1c1917; }
+  .ig-arrow:hover { background: #f5f5f4; border-color: #d6d3d1; }
+
+  /* ── Lightbox ── */
   .lightbox-overlay {
     position: fixed; inset: 0; z-index: 9999;
     background: rgba(12,12,10,0.93);
