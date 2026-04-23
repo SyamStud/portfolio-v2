@@ -18,8 +18,26 @@ export async function generateMetadata({ params }) {
 export default async function ActivityDetailPage({ params }) {
   const { id } = await params;
   await connectToDatabase();
-  const activityDoc = await Activity.findById(id).lean();
-  const activity = activityDoc ? JSON.parse(JSON.stringify(activityDoc)) : null;
 
-  return <ActivityDetailClient activity={activity} />;
+  // Fetch current activity and all activities for next/prev navigation
+  const [activityDoc, allActivitiesDocs] = await Promise.all([
+    Activity.findById(id).lean(),
+    Activity.find().sort({ date: -1, order: 1 }).select('_id title').lean(),
+  ]);
+
+  const activity = activityDoc ? JSON.parse(JSON.stringify(activityDoc)) : null;
+  const allActivities = JSON.parse(JSON.stringify(allActivitiesDocs));
+
+  // Find current index and determine prev/next
+  const currentIdx = allActivities.findIndex(a => a._id === id);
+  const prevActivity = currentIdx > 0 ? allActivities[currentIdx - 1] : allActivities[allActivities.length - 1];
+  const nextActivity = currentIdx < allActivities.length - 1 ? allActivities[currentIdx + 1] : allActivities[0];
+
+  return (
+    <ActivityDetailClient
+      activity={activity}
+      prevActivity={prevActivity}
+      nextActivity={nextActivity}
+    />
+  );
 }

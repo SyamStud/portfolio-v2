@@ -13,6 +13,10 @@ const projectSchema = new mongoose.Schema(
     content: {
       type: mongoose.Schema.Types.Mixed,
     },
+    thumbnail: {
+      type: String,
+      default: '',
+    },
     images: {
       type: [String],
       default: [],

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Trash2, Edit, Plus, CheckCircle, GripVertical } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Trash2, Edit, Plus, CheckCircle, GripVertical, Image as ImageIcon } from 'lucide-react';
 
 function BilingualInput({ label, valueEn, valueId, onChangeEn, onChangeId, required = false, type = 'text', rows, hint }) {
   const [activeLang, setActiveLang] = useState('en');
@@ -62,12 +62,20 @@ export default function ProjectsPage() {
   const [availableTechs, setAvailableTechs] = useState([]);
   const [isTechDropdownOpen, setIsTechDropdownOpen] = useState(false);
 
+  // Thumbnail
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState('');
+
   // Files
   const [imageFiles, setImageFiles] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
   const [videoFile, setVideoFile] = useState(null);
   const [existingVideoUrl, setExistingVideoUrl] = useState('');
   const [removeVideo, setRemoveVideo] = useState(false);
+
+  // Drag & Drop state
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -120,6 +128,50 @@ export default function ProjectsPage() {
     setTechStack(techStack.filter((_, idx) => idx !== indexToRemove));
   };
 
+  const handleThumbnailChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setThumbnailFile(file);
+      setThumbnailPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Drag & Drop handlers for existing images
+  const handleDragStart = (e, index) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const reordered = [...existingImages];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+    setExistingImages(reordered);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,6 +188,13 @@ export default function ProjectsPage() {
     formData.append('proprietary', form.proprietary);
     formData.append('techStackData', JSON.stringify(techStack));
 
+    // Thumbnail
+    if (thumbnailFile) {
+      formData.append('thumbnailFile', thumbnailFile);
+    } else if (editingId && thumbnailPreview) {
+      formData.append('existingThumbnail', thumbnailPreview);
+    }
+
     for (let i = 0; i < imageFiles.length; i++) {
       formData.append('images', imageFiles[i]);
     }
@@ -145,7 +204,8 @@ export default function ProjectsPage() {
     }
     
     if (editingId) {
-      existingImages.forEach(url => formData.append('existingImages', url));
+      // Send ordered images as JSON
+      formData.append('existingImagesJson', JSON.stringify(existingImages));
       if (removeVideo) formData.append('removeVideo', 'true');
     }
 
@@ -185,6 +245,8 @@ export default function ProjectsPage() {
       proprietary: project.proprietary || false,
     });
     setTechStack(project.techStack || []);
+    setThumbnailFile(null);
+    setThumbnailPreview(project.thumbnail || '');
     setExistingImages(project.images || []);
     setImageFiles([]);
     setExistingVideoUrl(project.videoUrl || '');
@@ -209,6 +271,8 @@ export default function ProjectsPage() {
       demoUrl: '', repoUrl: '', youtubeUrl: '', order: 0, proprietary: false
     });
     setTechStack([]);
+    setThumbnailFile(null);
+    setThumbnailPreview('');
     setImageFiles([]);
     setExistingImages([]);
     setVideoFile(null);
@@ -360,7 +424,7 @@ export default function ProjectsPage() {
                         className="px-4 py-2 border-t border-stone-100 text-sm text-stone-500 hover:bg-stone-50 cursor-pointer italic"
                         onClick={() => handleTechAdd(techInput)}
                       >
-                        Add "{techInput}" as custom tech
+                        Add &quot;{techInput}&quot; as custom tech
                       </div>
                     </div>
                   )}
@@ -390,17 +454,65 @@ export default function ProjectsPage() {
 
               <hr className="border-stone-100" />
 
-              {/* Media */}
+              {/* Thumbnail */}
               <div>
-                <label className={labelClasses}>Project Images</label>
+                <label className={labelClasses}>Thumbnail Image</label>
+                <p className="text-[11px] text-stone-400 mb-3">Displayed on cards in home page & project list. Separate from gallery images.</p>
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-full sm:w-40 aspect-video rounded-xl bg-stone-50 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
+                    {thumbnailPreview ? (
+                      <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center text-stone-300">
+                        <ImageIcon size={20} className="mb-1" />
+                        <span className="text-[9px] font-semibold uppercase tracking-wider">No Thumbnail</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 w-full">
+                    <input type="file" accept="image/*" onChange={handleThumbnailChange} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 transition-all cursor-pointer" />
+                    {thumbnailPreview && (
+                      <button type="button" onClick={() => { setThumbnailFile(null); setThumbnailPreview(''); }} className="text-[11px] text-red-500 font-medium mt-2 hover:underline">
+                        Remove thumbnail
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Gallery Images with Drag & Drop */}
+              <div>
+                <label className={labelClasses}>Gallery Images</label>
+                <p className="text-[11px] text-stone-400 mb-3">Drag to reorder. These appear in the project detail gallery.</p>
                 {existingImages.length > 0 && (
-                  <div className="flex gap-4 mb-4 overflow-x-auto pb-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
                     {existingImages.map((src, idx) => (
-                      <div key={idx} className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-stone-200 group">
-                        <img src={src} alt="Existing" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => removeExistingImage(idx)} className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Trash2 size={12} />
-                        </button>
+                      <div
+                        key={`${src}-${idx}`}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, idx)}
+                        onDragOver={(e) => handleDragOver(e, idx)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, idx)}
+                        onDragEnd={handleDragEnd}
+                        className={`relative rounded-lg overflow-hidden border-2 group cursor-grab active:cursor-grabbing transition-all duration-200 ${
+                          dragIndex === idx ? 'opacity-40 scale-95' : 'opacity-100'
+                        } ${
+                          dragOverIndex === idx ? 'border-stone-900 shadow-lg scale-105' : 'border-stone-200'
+                        }`}
+                      >
+                        <img src={src} alt={`Image ${idx + 1}`} className="w-full aspect-square object-cover" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
+                            <div className="w-7 h-7 bg-white/90 rounded-md flex items-center justify-center">
+                              <GripVertical size={14} className="text-stone-600" />
+                            </div>
+                            <button type="button" onClick={() => removeExistingImage(idx)} className="w-7 h-7 bg-red-500 rounded-md text-white flex items-center justify-center hover:bg-red-600">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                        <span className="absolute bottom-1 left-1 text-[9px] font-bold bg-black/60 text-white px-1.5 py-0.5 rounded">{idx + 1}</span>
                       </div>
                     ))}
                   </div>
@@ -466,8 +578,8 @@ export default function ProjectsPage() {
                   <div key={proj._id} className={`group flex items-center p-3 border rounded-xl transition-all duration-200 ${editingId === proj._id ? 'border-stone-400 bg-stone-50 shadow-sm' : 'border-stone-100 hover:border-stone-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white'}`}>
                     
                     <div className="w-16 h-12 shrink-0 rounded-lg overflow-hidden bg-stone-100 border border-stone-200 mr-4">
-                      {proj.images && proj.images.length > 0 ? (
-                        <img src={proj.images[0]} alt="Thumbnail" className="w-full h-full object-cover" />
+                      {(proj.thumbnail || (proj.images && proj.images.length > 0)) ? (
+                        <img src={proj.thumbnail || proj.images[0]} alt="Thumbnail" className="w-full h-full object-cover" />
                       ) : (
                          <div className="w-full h-full flex items-center justify-center text-[8px] text-stone-400 uppercase font-bold">No Img</div>
                       )}

@@ -59,9 +59,9 @@ export default function ActivitiesListClient({ activities }) {
                     className="group bg-white rounded-2xl overflow-hidden border border-stone-200/80 hover:border-stone-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)] transition-all flex flex-col"
                   >
                     <div className="relative overflow-hidden bg-stone-100">
-                      {act.image ? (
+                      {(act.thumbnail || (act.images && act.images.length > 0) || act.image) ? (
                         <img
-                          src={act.image}
+                          src={act.thumbnail || (act.images && act.images.length > 0 ? act.images[0] : act.image)}
                           alt={getLocalized(act.title, language)}
                           className="w-full aspect-[16/10] object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
                         />

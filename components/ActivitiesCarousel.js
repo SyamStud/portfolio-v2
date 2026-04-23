@@ -381,7 +381,7 @@ export default function ActivitiesCarousel({ activities }) {
                 }}
               >
                 <img
-                  src={act.image || '/placeholder.jpg'}
+                  src={act.thumbnail || (act.images && act.images.length > 0 ? act.images[0] : act.image) || '/placeholder.jpg'}
                   alt={getLocalized(act.title, language)}
                 />
                 {/* Only show overlay on the active card */}

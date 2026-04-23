@@ -1,14 +1,15 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import FadeIn from '@/components/FadeIn';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import ImageGallery from '@/app/projects/[id]/ImageGallery';
 import { useLanguage } from '@/components/LanguageContext';
 import { getLocalized } from '@/lib/localize';
 
-export default function ActivityDetailClient({ activity }) {
+export default function ActivityDetailClient({ activity, prevActivity, nextActivity }) {
   const { language, t } = useLanguage();
   const dateLocale = t('date_locale');
 
@@ -33,6 +34,10 @@ export default function ActivityDetailClient({ activity }) {
   const localizedTitle = getLocalized(activity.title, language);
   const localizedDesc = getLocalized(activity.description, language);
   const localizedContent = getLocalized(activity.content, language);
+  const images = activity.images ?? [];
+
+  const prevTitle = prevActivity ? getLocalized(prevActivity.title, language) : '';
+  const nextTitle = nextActivity ? getLocalized(nextActivity.title, language) : '';
 
   const dateStr = new Date(activity.date).toLocaleDateString(dateLocale, {
     year: 'numeric',
@@ -52,20 +57,92 @@ export default function ActivityDetailClient({ activity }) {
         .md-content h1 { font-size: 1.75rem; font-weight: 600; color: #1c1917; letter-spacing: -0.03em; margin: 2.5rem 0 1rem; }
         .md-content h2 { font-size: 1.35rem; font-weight: 600; color: #1c1917; letter-spacing: -0.02em; margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e7e5e4; }
         .md-content h3 { font-size: 1.05rem; font-weight: 600; color: #292524; letter-spacing: -0.01em; margin: 1.5rem 0 0.5rem; }
+        .md-content h4 { font-size: 0.95rem; font-weight: 600; color: #44403c; margin: 1.25rem 0 0.4rem; }
         .md-content p { margin: 0 0 1.25rem; }
-        .md-content a { color: #1c1917; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #d6d3d1; }
+        .md-content a { color: #1c1917; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #d6d3d1; transition: text-decoration-color 0.2s; }
         .md-content a:hover { text-decoration-color: #57534e; }
         .md-content strong { color: #292524; font-weight: 600; }
+        .md-content em { font-style: italic; }
         .md-content ul { list-style: disc; padding-left: 1.4rem; margin: 0 0 1.25rem; }
         .md-content ol { list-style: decimal; padding-left: 1.4rem; margin: 0 0 1.25rem; }
         .md-content li { margin-bottom: 0.35rem; }
-        .md-content blockquote { border-left: 3px solid #d6d3d1; padding: 0.5rem 0 0.5rem 1.25rem; margin: 1.5rem 0; color: #78716c; font-style: italic; }
+        .md-content li > ul, .md-content li > ol { margin-top: 0.35rem; margin-bottom: 0; }
+        .md-content blockquote {
+          border-left: 3px solid #d6d3d1;
+          padding: 0.5rem 0 0.5rem 1.25rem;
+          margin: 1.5rem 0;
+          color: #78716c;
+          font-style: italic;
+        }
         .md-content blockquote p { margin: 0; }
-        .md-content code { font-family: 'DM Mono', monospace; font-size: 0.85em; background: #f5f5f4; border: 1px solid #e7e5e4; border-radius: 5px; padding: 0.15em 0.4em; color: #292524; }
-        .md-content pre { background: #1c1917; border-radius: 12px; padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1.5rem 0; }
-        .md-content pre code { background: none; border: none; padding: 0; color: #d6d3d1; font-size: 0.875rem; }
+        .md-content code {
+          font-family: 'DM Mono', 'Fira Code', monospace;
+          font-size: 0.85em;
+          background: #f5f5f4;
+          border: 1px solid #e7e5e4;
+          border-radius: 5px;
+          padding: 0.15em 0.4em;
+          color: #292524;
+        }
+        .md-content pre {
+          background: #1c1917;
+          border-radius: 12px;
+          padding: 1.25rem 1.5rem;
+          overflow-x: auto;
+          margin: 1.5rem 0;
+        }
+        .md-content pre code {
+          background: none;
+          border: none;
+          padding: 0;
+          color: #d6d3d1;
+          font-size: 0.875rem;
+          line-height: 1.7;
+        }
         .md-content hr { border: none; border-top: 1px solid #e7e5e4; margin: 2.5rem 0; }
         .md-content img { width: 100%; border-radius: 12px; margin: 1.5rem 0; border: 1px solid #e7e5e4; }
+
+        /* ── Prev/Next nav ── */
+        .act-nav-footer {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        .act-nav-card {
+          display: flex;
+          flex-direction: column;
+          padding: 20px 24px;
+          border-radius: 14px;
+          border: 1px solid #e7e5e4;
+          background: white;
+          text-decoration: none;
+          transition: all 0.25s ease;
+        }
+        .act-nav-card:hover {
+          border-color: #d6d3d1;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+          transform: translateY(-2px);
+        }
+        .act-nav-card .nav-label {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #a8a29e;
+          margin-bottom: 6px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .act-nav-card .nav-title {
+          font-size: 15px;
+          font-weight: 600;
+          color: #1c1917;
+          line-height: 1.4;
+        }
+        .act-nav-card.prev { text-align: left; }
+        .act-nav-card.next { text-align: right; }
+        .act-nav-card.next .nav-label { justify-content: flex-end; }
       `}</style>
 
       {/* Navbar */}
@@ -84,7 +161,7 @@ export default function ActivityDetailClient({ activity }) {
       <FadeIn direction="up">
         <main className="max-w-5xl mx-auto px-5 md:px-8 pt-16">
           {/* Header */}
-          <section className="pt-20 pb-8 max-w-3xl">
+          <section className="pt-20 pb-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-px bg-stone-400" />
               <span className="text-[11px] font-semibold tracking-[0.25em] uppercase text-stone-500">{t('activity_label')}</span>
@@ -108,22 +185,17 @@ export default function ActivityDetailClient({ activity }) {
             </p>
           </section>
 
-          {/* Image */}
-          {activity.image && (
-            <section className="py-6">
-              <div className="rounded-2xl overflow-hidden border border-stone-200/80">
-                <img
-                  src={activity.image}
-                  alt={localizedTitle}
-                  className="w-full aspect-[16/9] object-cover"
-                />
-              </div>
-            </section>
+          {/* Gallery — same as project detail */}
+          {images.length > 0 && (
+            <ImageGallery
+              images={images}
+              title={localizedTitle}
+            />
           )}
 
           {/* Markdown Content */}
           {localizedContent && (
-            <section className="py-8 max-w-3xl">
+            <section className="py-8">
               <div className="md-content">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {localizedContent}
@@ -132,14 +204,32 @@ export default function ActivityDetailClient({ activity }) {
             </section>
           )}
 
-          {/* Footer */}
+          {/* Prev / Next Navigation */}
           <footer className="py-16 mt-8 border-t border-stone-200">
-            <Link
-              href="/activities"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-stone-300 text-stone-700 text-sm font-medium hover:border-stone-700 hover:bg-white transition-all"
-            >
-              <ArrowLeft size={14} /> {t('browse_more_activities')}
-            </Link>
+            <div className="act-nav-footer">
+              {prevActivity ? (
+                <Link href={`/activities/${prevActivity._id}`} className="act-nav-card prev">
+                  <span className="nav-label">
+                    <ChevronLeft size={14} />
+                    {'Previous'}
+                  </span>
+                  <span className="nav-title">{prevTitle}</span>
+                </Link>
+              ) : (
+                <div />
+              )}
+              {nextActivity ? (
+                <Link href={`/activities/${nextActivity._id}`} className="act-nav-card next">
+                  <span className="nav-label">
+                    {'Next'}
+                    <ChevronRight size={14} />
+                  </span>
+                  <span className="nav-title">{nextTitle}</span>
+                </Link>
+              ) : (
+                <div />
+              )}
+            </div>
           </footer>
         </main>
       </FadeIn>

@@ -38,18 +38,36 @@ export async function POST(req) {
     try { description = JSON.parse(formData.get('description')); } catch { description = formData.get('description'); }
     try { content = JSON.parse(formData.get('content')); } catch { content = formData.get('content'); }
 
-    let image = '';
-    const imageFile = formData.get('image');
-    if (imageFile && typeof imageFile === 'object' && imageFile.name) {
-      const bytes = await imageFile.arrayBuffer();
+    // Handle thumbnail upload
+    let thumbnail = '';
+    const thumbnailFile = formData.get('thumbnailFile');
+    if (thumbnailFile && typeof thumbnailFile === 'object' && thumbnailFile.name) {
+      const bytes = await thumbnailFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const uploadResult = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream({ folder: 'portfolio/activities' }, (error, result) => {
+        cloudinary.uploader.upload_stream({ folder: 'portfolio/activities/thumbnails' }, (error, result) => {
           if (error) reject(error);
           else resolve(result);
         }).end(buffer);
       });
-      image = uploadResult.secure_url;
+      thumbnail = uploadResult.secure_url;
+    }
+
+    // Handle multiple images
+    const images = [];
+    const imageFiles = formData.getAll('images');
+    for (const file of imageFiles) {
+      if (file && typeof file === 'object' && file.name) {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uploadResult = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream({ folder: 'portfolio/activities' }, (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }).end(buffer);
+        });
+        images.push(uploadResult.secure_url);
+      }
     }
 
     const activity = await Activity.create({
@@ -58,7 +76,8 @@ export async function POST(req) {
       type,
       description,
       content,
-      image,
+      thumbnail,
+      images,
       featured,
       order,
     });

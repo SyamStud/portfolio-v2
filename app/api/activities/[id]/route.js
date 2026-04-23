@@ -44,25 +44,49 @@ export async function PUT(req, { params }) {
       order: formData.get('order') || 0,
     };
 
-    // Check if new image uploaded
-    const imageFile = formData.get('image');
-    if (imageFile && typeof imageFile === 'object' && imageFile.name) {
-      const bytes = await imageFile.arrayBuffer();
+    // Handle thumbnail
+    const thumbnailFile = formData.get('thumbnailFile');
+    if (thumbnailFile && typeof thumbnailFile === 'object' && thumbnailFile.name) {
+      const bytes = await thumbnailFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const uploadResult = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream({ folder: 'portfolio/activities' }, (error, result) => {
+        cloudinary.uploader.upload_stream({ folder: 'portfolio/activities/thumbnails' }, (error, result) => {
           if (error) reject(error);
           else resolve(result);
         }).end(buffer);
       });
-      updateData.image = uploadResult.secure_url;
+      updateData.thumbnail = uploadResult.secure_url;
     } else {
-      // Keep existing image
-      const existingImage = formData.get('existingImage');
-      if (existingImage) {
-        updateData.image = existingImage;
+      const existingThumbnail = formData.get('existingThumbnail');
+      if (existingThumbnail) {
+        updateData.thumbnail = existingThumbnail;
+      } else {
+        updateData.thumbnail = '';
       }
     }
+
+    // Handle multiple images (supports JSON array for ordered drag & drop)
+    let existingImages = [];
+    const existingImagesJson = formData.get('existingImagesJson');
+    if (existingImagesJson) {
+      try { existingImages = JSON.parse(existingImagesJson); } catch { existingImages = []; }
+    }
+    const newImageFiles = formData.getAll('images');
+    const uploadedImages = [];
+    for (const file of newImageFiles) {
+      if (file && typeof file === 'object' && file.name) {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uploadResult = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream({ folder: 'portfolio/activities' }, (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }).end(buffer);
+        });
+        uploadedImages.push(uploadResult.secure_url);
+      }
+    }
+    updateData.images = [...existingImages, ...uploadedImages];
 
     const activity = await Activity.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
     return NextResponse.json(activity);

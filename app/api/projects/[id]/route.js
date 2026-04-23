@@ -65,8 +65,35 @@ export async function PUT(req, { params }) {
       updateData.videoUrl = uploadResult.secure_url;
     }
 
-    // Keep existing images passed from client
-    const existingImages = formData.getAll('existingImages') || [];
+    // Handle thumbnail
+    const thumbnailFile = formData.get('thumbnailFile');
+    if (thumbnailFile && typeof thumbnailFile === 'object' && thumbnailFile.name) {
+      const bytes = await thumbnailFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const uploadResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream({ folder: 'portfolio/projects/thumbnails' }, (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }).end(buffer);
+      });
+      updateData.thumbnail = uploadResult.secure_url;
+    } else {
+      const existingThumbnail = formData.get('existingThumbnail');
+      if (existingThumbnail) {
+        updateData.thumbnail = existingThumbnail;
+      } else {
+        updateData.thumbnail = '';
+      }
+    }
+
+    // Keep existing images passed from client (supports JSON array for ordered drag & drop)
+    let existingImages = [];
+    const existingImagesJson = formData.get('existingImagesJson');
+    if (existingImagesJson) {
+      try { existingImages = JSON.parse(existingImagesJson); } catch { existingImages = []; }
+    } else {
+      existingImages = formData.getAll('existingImages') || [];
+    }
     const newImageFiles = formData.getAll('images');
     const uploadedImages = [];
     

@@ -300,8 +300,8 @@ export default function ProjectsCarousel({ projects }) {
                 <Link href={`/projects/${proj._id}`} className="block h-full">
                   <div className="proj-card">
                     <div className="proj-card-img">
-                      {proj.images && proj.images.length > 0 ? (
-                        <img src={proj.images[0]} alt={getLocalized(proj.title, language)} />
+                      {(proj.thumbnail || (proj.images && proj.images.length > 0)) ? (
+                        <img src={proj.thumbnail || proj.images[0]} alt={getLocalized(proj.title, language)} />
                       ) : (
                         <div className="proj-placeholder" />
                       )}

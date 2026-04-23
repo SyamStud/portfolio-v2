@@ -22,9 +22,13 @@ const activitySchema = new mongoose.Schema(
     content: {
       type: mongoose.Schema.Types.Mixed,
     },
-    image: {
+    thumbnail: {
       type: String,
       default: "",
+    },
+    images: {
+      type: [String],
+      default: [],
     },
     featured: {
       type: Boolean,

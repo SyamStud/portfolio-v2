@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trash2, Edit, Plus, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Edit, Plus, CheckCircle, GripVertical, Image as ImageIcon } from 'lucide-react';
 
 function BilingualInput({ label, valueEn, valueId, onChangeEn, onChangeId, required = false, type = 'text', rows, hint }) {
   const [activeLang, setActiveLang] = useState('en');
@@ -56,8 +56,17 @@ export default function ActivitiesPage() {
     featured: false, order: 0
   });
   
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  // Thumbnail
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState('');
+
+  // Multiple images
+  const [imageFiles, setImageFiles] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+
+  // Drag & Drop state
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
   
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -80,12 +89,53 @@ export default function ActivitiesPage() {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleImageChange = (e) => {
+  const handleThumbnailChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      setThumbnailFile(file);
+      setThumbnailPreview(URL.createObjectURL(file));
     }
+  };
+
+  // Drag & Drop handlers for existing images
+  const handleDragStart = (e, index) => {
+    setDragIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const reordered = [...existingImages];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+    setExistingImages(reordered);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const removeExistingImage = (idx) => {
+    setExistingImages(existingImages.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async (e) => {
@@ -101,10 +151,20 @@ export default function ActivitiesPage() {
     formData.append('featured', form.featured);
     formData.append('order', form.order);
 
-    if (imageFile) {
-      formData.append('image', imageFile);
-    } else if (editingId && imagePreview) {
-      formData.append('existingImage', imagePreview);
+    // Thumbnail
+    if (thumbnailFile) {
+      formData.append('thumbnailFile', thumbnailFile);
+    } else if (editingId && thumbnailPreview) {
+      formData.append('existingThumbnail', thumbnailPreview);
+    }
+
+    // Gallery images
+    for (let i = 0; i < imageFiles.length; i++) {
+      formData.append('images', imageFiles[i]);
+    }
+
+    if (editingId) {
+      formData.append('existingImagesJson', JSON.stringify(existingImages));
     }
 
     const method = editingId ? 'PUT' : 'POST';
@@ -141,8 +201,10 @@ export default function ActivitiesPage() {
       featured: activity.featured || false,
       order: activity.order || 0
     });
-    setImagePreview(activity.image || '');
-    setImageFile(null);
+    setThumbnailFile(null);
+    setThumbnailPreview(activity.thumbnail || activity.image || '');
+    setExistingImages(activity.images || []);
+    setImageFiles([]);
     setEditingId(activity._id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -160,8 +222,10 @@ export default function ActivitiesPage() {
       description_en: '', description_id: '', content_en: '', content_id: '',
       featured: false, order: 0
     });
-    setImageFile(null);
-    setImagePreview('');
+    setThumbnailFile(null);
+    setThumbnailPreview('');
+    setImageFiles([]);
+    setExistingImages([]);
     setEditingId(null);
   };
 
@@ -172,6 +236,11 @@ export default function ActivitiesPage() {
     if (!title) return '';
     if (typeof title === 'string') return title;
     return title.en || title.id || '';
+  };
+
+  // Get display image for activity list (backwards compatible)
+  const getActivityThumb = (act) => {
+    return act.thumbnail || act.image || (act.images && act.images.length > 0 ? act.images[0] : '');
   };
 
   return (
@@ -258,25 +327,71 @@ export default function ActivitiesPage() {
 
               <hr className="border-stone-100" />
 
-              {/* Cover Image */}
+              {/* Thumbnail */}
               <div>
-                <label className={labelClasses}>Cover Image</label>
-                <div className="flex flex-col sm:flex-row gap-5 items-start">
-                  <div className="w-full sm:w-48 aspect-video rounded-xl bg-stone-50 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                <label className={labelClasses}>Thumbnail Image</label>
+                <p className="text-[11px] text-stone-400 mb-3">Displayed on cards in home page & activity list. Separate from gallery images.</p>
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-full sm:w-40 aspect-video rounded-xl bg-stone-50 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
+                    {thumbnailPreview ? (
+                      <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-full object-cover" />
                     ) : (
                       <div className="flex flex-col items-center text-stone-300">
-                        <ImageIcon size={24} className="mb-2" />
-                        <span className="text-[10px] font-semibold uppercase tracking-wider">No Image</span>
+                        <ImageIcon size={20} className="mb-1" />
+                        <span className="text-[9px] font-semibold uppercase tracking-wider">No Thumbnail</span>
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 w-full pt-1">
-                    <input type="file" accept="image/*" onChange={handleImageChange} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 transition-all cursor-pointer" />
-                    <p className="text-[12px] text-stone-500 mt-3 leading-relaxed">Recommended size: 1200x630px.<br/>This image will be used as the thumbnail.</p>
+                  <div className="flex-1 w-full">
+                    <input type="file" accept="image/*" onChange={handleThumbnailChange} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 transition-all cursor-pointer" />
+                    {thumbnailPreview && (
+                      <button type="button" onClick={() => { setThumbnailFile(null); setThumbnailPreview(''); }} className="text-[11px] text-red-500 font-medium mt-2 hover:underline">
+                        Remove thumbnail
+                      </button>
+                    )}
                   </div>
                 </div>
+              </div>
+
+              {/* Gallery Images with Drag & Drop */}
+              <div>
+                <label className={labelClasses}>Gallery Images</label>
+                <p className="text-[11px] text-stone-400 mb-3">Drag to reorder. These appear in the activity detail gallery.</p>
+                {existingImages.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+                    {existingImages.map((src, idx) => (
+                      <div
+                        key={`${src}-${idx}`}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, idx)}
+                        onDragOver={(e) => handleDragOver(e, idx)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, idx)}
+                        onDragEnd={handleDragEnd}
+                        className={`relative rounded-lg overflow-hidden border-2 group cursor-grab active:cursor-grabbing transition-all duration-200 ${
+                          dragIndex === idx ? 'opacity-40 scale-95' : 'opacity-100'
+                        } ${
+                          dragOverIndex === idx ? 'border-stone-900 shadow-lg scale-105' : 'border-stone-200'
+                        }`}
+                      >
+                        <img src={src} alt={`Image ${idx + 1}`} className="w-full aspect-square object-cover" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
+                            <div className="w-7 h-7 bg-white/90 rounded-md flex items-center justify-center">
+                              <GripVertical size={14} className="text-stone-600" />
+                            </div>
+                            <button type="button" onClick={() => removeExistingImage(idx)} className="w-7 h-7 bg-red-500 rounded-md text-white flex items-center justify-center hover:bg-red-600">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                        <span className="absolute bottom-1 left-1 text-[9px] font-bold bg-black/60 text-white px-1.5 py-0.5 rounded">{idx + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input type="file" multiple accept="image/*" onChange={e => setImageFiles(Array.from(e.target.files))} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 transition-all cursor-pointer" />
+                {imageFiles.length > 0 && <p className="text-[11px] text-stone-500 mt-2">{imageFiles.length} new image(s) selected.</p>}
               </div>
 
               <hr className="border-stone-100" />
@@ -342,45 +457,48 @@ export default function ActivitiesPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-3 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
-                {activities.map(act => (
-                  <div key={act._id} className={`group flex flex-col p-4 border rounded-xl transition-all duration-200 ${editingId === act._id ? 'border-stone-400 bg-stone-50 shadow-sm' : 'border-stone-100 hover:border-stone-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white'}`}>
-                    
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="min-w-0 pr-2">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-[9px] font-bold tracking-widest uppercase text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">{act.type}</span>
-                          {act.featured && <span className="text-[9px] font-bold tracking-widest uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50">Featured</span>}
+                {activities.map(act => {
+                  const thumb = getActivityThumb(act);
+                  return (
+                    <div key={act._id} className={`group flex flex-col p-4 border rounded-xl transition-all duration-200 ${editingId === act._id ? 'border-stone-400 bg-stone-50 shadow-sm' : 'border-stone-100 hover:border-stone-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white'}`}>
+                      
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="min-w-0 pr-2">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-[9px] font-bold tracking-widest uppercase text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">{act.type}</span>
+                            {act.featured && <span className="text-[9px] font-bold tracking-widest uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50">Featured</span>}
+                          </div>
+                          <h4 className="font-semibold text-stone-900 text-[14px] leading-tight line-clamp-2">{displayTitle(act.title)}</h4>
                         </div>
-                        <h4 className="font-semibold text-stone-900 text-[14px] leading-tight line-clamp-2">{displayTitle(act.title)}</h4>
+                        
+                        {thumb ? (
+                          <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-stone-100 border border-stone-200">
+                            <img src={thumb} alt="Thumb" className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 shrink-0 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-center">
+                            <ImageIcon size={14} className="text-stone-300" />
+                          </div>
+                        )}
                       </div>
                       
-                      {act.image ? (
-                        <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-stone-100 border border-stone-200">
-                          <img src={act.image} alt="Thumb" className="w-full h-full object-cover" />
+                      <div className="flex items-center justify-between pt-3 border-t border-stone-100">
+                        <span className="text-[11px] font-medium text-stone-500">
+                          {new Date(act.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        
+                        <div className="flex gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <button onClick={() => handleEdit(act)} className={`p-1.5 rounded-lg transition-colors ${editingId === act._id ? 'bg-stone-900 text-white' : 'text-stone-500 bg-stone-50 border border-stone-200 hover:bg-stone-100'}`}>
+                            <Edit size={13} />
+                          </button>
+                          <button onClick={() => handleDelete(act._id)} className="p-1.5 text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 rounded-lg transition-colors">
+                            <Trash2 size={13} />
+                          </button>
                         </div>
-                      ) : (
-                        <div className="w-12 h-12 shrink-0 rounded-lg bg-stone-50 border border-stone-100 flex items-center justify-center">
-                          <ImageIcon size={14} className="text-stone-300" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-3 border-t border-stone-100">
-                      <span className="text-[11px] font-medium text-stone-500">
-                        {new Date(act.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                      
-                      <div className="flex gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button onClick={() => handleEdit(act)} className={`p-1.5 rounded-lg transition-colors ${editingId === act._id ? 'bg-stone-900 text-white' : 'text-stone-500 bg-stone-50 border border-stone-200 hover:bg-stone-100'}`}>
-                          <Edit size={13} />
-                        </button>
-                        <button onClick={() => handleDelete(act._id)} className="p-1.5 text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 rounded-lg transition-colors">
-                          <Trash2 size={13} />
-                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             
